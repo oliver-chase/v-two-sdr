@@ -1,0 +1,35 @@
+name: V.Two SDR Daily Outreach
+
+on:
+  schedule:
+    - cron: '0 14 * * 1-5'  # 2 PM UTC = 9 AM ET, Mon-Fri
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  send-outreach:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install google-auth-oauthlib google-auth-httplib2 google-api-python-client gspread python-dotenv
+
+      - name: Run SDR automation
+        env:
+          OUTLOOK_PASSWORD: ${{ secrets.OUTLOOK_PASSWORD }}
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        run: python skills/sdr/email-automation.py
+
+      - name: Log summary
+        if: always()
+        run: |
+          echo "SDR automation completed. Check logs above for details."
