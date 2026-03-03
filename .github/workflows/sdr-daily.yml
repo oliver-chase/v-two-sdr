@@ -22,6 +22,14 @@ jobs:
         run: |
           pip install google-auth-oauthlib google-auth-httplib2 google-api-python-client gspread python-dotenv
 
+      - name: Enrich test lead (Kiana) if needed
+        env:
+          OUTLOOK_PASSWORD: ${{ secrets.OUTLOOK_PASSWORD }}
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        run: python enrich-kiana.py
+        continue-on-error: true
+
       - name: Run SDR automation
         env:
           OUTLOOK_PASSWORD: ${{ secrets.OUTLOOK_PASSWORD }}
