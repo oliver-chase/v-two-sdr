@@ -63,7 +63,7 @@ class SDRAutomation:
     def read_google_sheet(self):
         """
         Reads Master Lead Repository from Google Sheet.
-        Returns list of prospects with Status = 'contacted' or 'follow-up-X'
+        Returns list of prospects with Status = 'ready-to-send', 'contacted', or 'follow-up-X'
         and Next Follow-Up Date = today.
         """
         if not self.sheet:
@@ -74,10 +74,10 @@ class SDRAutomation:
             all_records = self.sheet.get_all_records()
             today = datetime.now().strftime("%Y-%m-%d")
 
-            # Filter: Status = contacted/follow-up-X AND Next Follow-Up Date = today
+            # Filter: Status = ready-to-send/contacted/follow-up-X AND Next Follow-Up Date = today
             due_prospects = [
                 record for record in all_records
-                if record.get("Status") in ["contacted", "follow-up-1", "follow-up-2", "follow-up-3"]
+                if record.get("Status") in ["ready-to-send", "contacted", "follow-up-1", "follow-up-2", "follow-up-3"]
                 and record.get("Next Follow-Up") == today
             ]
 
