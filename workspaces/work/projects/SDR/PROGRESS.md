@@ -5,8 +5,8 @@
 ## Current State
 
 - **Phase:** 1 — Research & Ramp (Week 1-2)
-- **Current Task:** OpenClaw prospect research (queued, not started)
-- **Last Completed:** Project setup, file structure, team coordination
+- **Current Task:** OpenClaw prospect research (queued, ready to start)
+- **Last Completed:** Templates A-E ready, JSON schemas initialized, validation tooling built
 - **Branch:** N/A (file-based project)
 
 ## Team Assignment
@@ -20,8 +20,10 @@
 
 - [ ] OpenClaw research: 300+ prospects
 - [ ] Claude Code validate/deduplicate
-- [ ] Build prospects.json (TOON format)
-- [ ] Email templates A-C ready
+- [x] Build prospects.json (TOON format) — Created with schema
+- [x] Email templates A-C ready — templates.md created, all 5 templates included
+- [x] JSON schema files ready — sends.json, opt-outs.json, weekly-reports.json initialized
+- [x] Validation tooling built — validate-prospects.js script ready
 - [ ] Send approval workflow tested
 - [ ] Weekly report template created
 - [ ] **Target sends:** 10-15/week

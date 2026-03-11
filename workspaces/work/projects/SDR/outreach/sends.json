@@ -1,0 +1,33 @@
+{
+  "sends": [
+    {
+      "id": "send-001",
+      "recipient": {
+        "firstName": "John",
+        "lastName": "Doe",
+        "company": "TechCorp",
+        "title": "CTO",
+        "email": "john.doe@techcorp.com"
+      },
+      "template": "A",
+      "subject": "[subject line]",
+      "sentDate": "2026-03-11T09:00:00Z",
+      "timezone": "America/New_York",
+      "track": "product-maker",
+      "status": "pending",
+      "reply": null,
+      "replyDate": null,
+      "replyContent": null,
+      "followupScheduled": null,
+      "notes": ""
+    }
+  ],
+  "metadata": {
+    "totalSends": 0,
+    "totalReplies": 0,
+    "totalBounces": 0,
+    "totalOptouts": 0,
+    "replyRate": 0,
+    "lastUpdated": "2026-03-11T00:00:00Z"
+  }
+}
