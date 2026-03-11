@@ -2,6 +2,20 @@
 
 Both Claude Code and OpenClaw use this guide to understand the workspace architecture.
 
+---
+
+## ⭐ BEFORE STARTING ANY PROJECT
+
+**Load and follow:** `skills/project-protocol/SKILL.md`
+
+This is the universal standard for all Oliver work. It covers:
+- Pre-work file checks (MASTER.md, PROGRESS.md, AUDIT.md)
+- Session start/end procedures
+- Model selection
+- Design review requirements
+
+---
+
 ## 6-Layer Architecture
 
 ```
@@ -46,32 +60,30 @@ Identity, personality, constraints, and checklists. All 9 files:
 - **secrets-management.md** — How API keys are stored & accessed, coaching guide
 
 ### Layer 2: Skills (skills/)
-Specialized tools & capabilities. 21 skill folders, each with SKILL.md:
-1. api-security
-2. async-task-execution
-3. brand-guidelines
-4. code-enforcement
-5. competitive-intelligence
-6. debugging
-7. git
-8. jtbd
-9. personas
-10. planning
-11. pm-visualizer
-12. project-configuration
-13. self-improvement
-14. seo-content-creation
-15. skill-security-audit
-16. software-architecture
-17. subagent-orchestration
-18. token-optimizer
-19. utils
-20. webapp-testing
-21. work-outreach
+Specialized tools & capabilities. 23 skill folders, each with SKILL.md:
+1. api-security          | 13. self-improvement
+2. async-task-execution  | 14. seo-content-creation
+3. brand-guidelines      | 15. skill-security-audit
+4. code-enforcement      | 16. software-architecture
+5. competitive-intel     | 17. subagent-orchestration
+6. debugging             | 18. token-optimizer
+7. frontend-design       | 19. utils
+8. git                   | 20. webapp-testing
+9. jtbd                  | 21. work-outreach
+10. personas             | 22. pm-visualizer
+11. planning             | 23. **project-protocol** ← LOAD FIRST FOR ALL PROJECTS
+12. project-configuration|
 
 ### Layer 3: Team & Personas
-- **team/members/** — Real team personas (dev, fe-designer, cmo, marketing, sdr) with persona_soul.md and config.json
-- **team/tools.md** — Oliver's environment notes & local setup (models, scripts, gateway management)
+- **team/members/** — Real team personas with persona_soul.md:
+  - **dev** — Backend/fullstack development
+  - **fe-designer** — Frontend design system, components (skill: skills/frontend-design/SKILL.md)
+  - **tester** — TDD, coverage, quality gates (skill: skills/webapp-testing/SKILL.md)
+  - **architect** — System design, API standards, token optimization
+  - **cmo** — Marketing strategy
+  - **marketing** — Content and campaigns
+  - **sdr** — Sales outreach
+- **team/tools.md** — Oliver's environment notes & local setup
 
 ### Layer 4: Hooks (hooks/)
 System utilities and monitoring:
@@ -140,4 +152,4 @@ See **agents/NEW-AGENT-GUIDE.md** for complete step-by-step process.
 
 ---
 
-**Last updated:** 2026-03-09
+**Last updated:** 2026-03-11
