@@ -1,0 +1,141 @@
+.agent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.agent-list .empty-state {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* Agent Item */
+.agent-item {
+  border-bottom: 1px solid var(--border);
+}
+
+.agent-item:last-child {
+  border-bottom: none;
+}
+
+/* Agent Header */
+.agent-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 8px;
+  background: var(--surface);
+}
+
+/* Expand Button */
+.expand-btn {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s, transform 0.2s;
+  border-radius: 2px;
+}
+
+.expand-btn:hover {
+  color: var(--text-primary);
+  background: var(--accent-100);
+}
+
+.expand-btn.expanded {
+  transform: rotate(90deg);
+}
+
+.expand-placeholder {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+}
+
+/* Agent Button */
+.agent-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'IBM Plex Sans', sans-serif;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.agent-btn:hover {
+  background: var(--accent-100);
+  color: var(--accent-700);
+}
+
+.agent-btn.selected {
+  background: var(--accent-100);
+  color: var(--accent-700);
+  border-left: 3px solid var(--accent-600);
+  padding-left: 10px;
+}
+
+.agent-name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Personas List */
+.agent-personas {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: var(--bg);
+  padding: 0;
+}
+
+/* Persona Button */
+.persona-btn {
+  padding: 8px 12px 8px 32px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 400;
+  font-family: 'IBM Plex Sans', sans-serif;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.persona-btn:hover {
+  background: var(--accent-100);
+  color: var(--text-primary);
+}
+
+.persona-btn.selected {
+  background: var(--accent-100);
+  color: var(--accent-700);
+  font-weight: 600;
+}
+
+.persona-name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -4,10 +4,12 @@ import UsageTips from './components/UsageTips'
 import OrgChart from './components/OrgChart'
 import SkillsPanel from './components/SkillsPanel'
 import DocsBrowser from './components/DocsBrowser'
+import AgentExplorer from './components/AgentExplorer'
 import { normalizeResponse } from './utils/responseNormalizer'
 
 const NAV_SECTIONS = [
   { id: 'org', label: 'Org Chart' },
+  { id: 'agents', label: 'Agents & Personas' },
   { id: 'skills', label: 'Skills' },
   { id: 'docs', label: 'Documentation' },
   { id: 'aliases', label: 'Aliases' },
@@ -91,6 +93,8 @@ function App() {
     switch (activeSection) {
       case 'org':
         return data.team ? <OrgChart team={data.team} /> : <p className="content-empty">No team data available</p>
+      case 'agents':
+        return <AgentExplorer />
       case 'skills':
         return <SkillsPanel />
       case 'docs':
