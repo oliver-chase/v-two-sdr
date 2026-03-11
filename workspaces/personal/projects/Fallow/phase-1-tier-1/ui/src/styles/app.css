@@ -1,0 +1,132 @@
+@import './design-system.css';
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  background: var(--color-cream);
+  color: var(--color-gray-dark);
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--color-sage), var(--color-green));
+  color: var(--color-white);
+  padding: var(--space-2xl) var(--space-lg);
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+}
+
+.header h1 {
+  font-family: var(--font-serif);
+  font-size: var(--text-h1);
+  margin-bottom: var(--space-sm);
+  font-weight: var(--font-serif-weight-bold);
+}
+
+.header p {
+  font-size: var(--text-sm);
+  opacity: 0.95;
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-gray-light);
+  background: var(--color-white);
+  box-shadow: var(--shadow-sm);
+}
+
+.tab {
+  flex: 1;
+  padding: var(--space-md);
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: var(--text-base);
+  color: var(--color-gray-dark);
+  border-bottom: 3px solid transparent;
+  transition: all var(--transition-base);
+  font-weight: var(--font-sans-weight-medium);
+}
+
+.tab:hover {
+  color: var(--color-sage);
+  background: var(--color-cream);
+}
+
+.tab.active {
+  color: var(--color-sage);
+  border-bottom-color: var(--color-sage);
+}
+
+.main {
+  flex: 1;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--gutter-mobile);
+}
+
+.browse-section,
+.review-section,
+.status-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xl);
+}
+
+.error {
+  background-color: #FEE;
+  border: 2px solid var(--color-error);
+  color: var(--color-error);
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  margin: var(--space-lg) 0;
+  font-size: var(--text-sm);
+}
+
+.loading {
+  text-align: center;
+  padding: var(--space-2xl);
+  color: var(--color-gray-medium);
+  font-size: var(--text-base);
+}
+
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.result-count {
+  font-size: var(--text-sm);
+  color: var(--color-gray-medium);
+  margin-bottom: var(--space-md);
+}
+
+@media (max-width: 639px) {
+  .header h1 {
+    font-size: var(--text-h2);
+  }
+
+  .main {
+    padding: var(--space-md);
+  }
+
+  .tabs {
+    flex-wrap: wrap;
+  }
+
+  .tab {
+    flex: 0 1 auto;
+    padding: var(--space-sm);
+  }
+}

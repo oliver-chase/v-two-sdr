@@ -1,0 +1,22 @@
+{
+  "persona": "marketing",
+  "name": "Marketing Oliver",
+  "role": "Content & Demand Gen Manager",
+  "company": "V.Two",
+  "status": "planned",
+  "trigger_keyword": "Marketing",
+  "workspace": "workspaces/work/projects/Marketing",
+  "allowed_tools": ["web_search", "write", "read"],
+  "restricted_tools": ["exec", "secrets.access", "message"],
+  "approval_required": ["message", "public_post"],
+  "collaboration": {
+    "can_request": ["sdr", "cmo", "claude_code", "openclaw"],
+    "shared_data": {
+      "content_calendar": "workspaces/work/projects/Marketing/content-calendar.md",
+      "seo_targets": "workspaces/work/projects/Marketing/seo-targets.md",
+      "assets": "workspaces/work/projects/Marketing/assets/"
+    }
+  },
+  "skill": "skills/marketing/SKILL.md",
+  "persona_soul": "team/members/marketing/persona_soul.md"
+}

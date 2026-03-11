@@ -1,0 +1,29 @@
+#!/bin/bash
+# Pre-commit hook: Require tests to pass before commit
+# Install: cp pre-commit-tests .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+# Blocks: Committing broken code (when tests fail)
+# Requires: npm test (or your test runner) to pass
+
+set -e
+
+echo "🧪 Running tests before commit..."
+
+# Detect test runner
+if [ -f "package.json" ]; then
+    npm test || {
+        echo ""
+        echo "❌ ABORT: Tests are failing. Fix them before committing."
+        echo "   Run 'npm test' to debug"
+        exit 1
+    }
+elif [ -f "pyproject.toml" ] || [ -f "setup.py" ]; then
+    python -m pytest || {
+        echo ""
+        echo "❌ ABORT: Tests are failing. Fix them before committing."
+        echo "   Run 'pytest' to debug"
+        exit 1
+    }
+fi
+
+echo "✅ All tests pass. Good to commit."
+exit 0

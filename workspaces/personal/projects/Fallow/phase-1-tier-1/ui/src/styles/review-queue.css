@@ -1,0 +1,167 @@
+.review-queue {
+  padding: 1rem;
+}
+
+.review-empty {
+  background: white;
+  border: 2px dashed var(--gray-200);
+  border-radius: var(--radius);
+  padding: 3rem 1rem;
+  text-align: center;
+}
+
+.review-empty h2 {
+  color: var(--gray-900);
+  margin-bottom: 1rem;
+}
+
+.review-empty p {
+  color: var(--gray-500);
+  margin: 0.5rem 0;
+}
+
+.review-info {
+  background: #eff6ff;
+  border-left: 4px solid var(--primary);
+  padding: 1rem;
+  border-radius: var(--radius);
+  margin-bottom: 1.5rem;
+  color: var(--primary-dark);
+}
+
+.review-items {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.review-item {
+  background: white;
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.review-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--secondary);
+  font-weight: 600;
+}
+
+.confidence {
+  color: var(--gray-600);
+  font-weight: 500;
+}
+
+.review-events {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 1rem;
+  align-items: center;
+}
+
+.event-column {
+  background: var(--gray-50);
+  padding: 1rem;
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.event-column h4 {
+  margin: 0;
+  color: var(--gray-900);
+  font-size: 1rem;
+}
+
+.event-column p {
+  margin: 0;
+  color: var(--gray-600);
+  font-size: 0.9rem;
+}
+
+.venue {
+  color: var(--gray-500);
+  font-size: 0.85rem;
+}
+
+.source-label {
+  display: inline-block;
+  background: var(--primary);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.vs {
+  text-align: center;
+  color: var(--gray-400);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.review-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.action-button {
+  flex: 1;
+  padding: 0.75rem;
+  border: none;
+  border-radius: var(--radius);
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.action-button.merge {
+  background: var(--success);
+  color: white;
+}
+
+.action-button.merge:hover:not(:disabled) {
+  background: #059669;
+}
+
+.action-button.reject {
+  background: var(--danger);
+  color: white;
+}
+
+.action-button.reject:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+.action-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.action-button.merged,
+.action-button.rejected {
+  background: var(--gray-300);
+  color: var(--gray-700);
+}
+
+@media (max-width: 768px) {
+  .review-events {
+    grid-template-columns: 1fr;
+  }
+
+  .vs {
+    display: none;
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "name": "model-watch",
+  "version": "1.0.0",
+  "openclaw": {
+    "hooks": ["index.ts"]
+  }
+}
