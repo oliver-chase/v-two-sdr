@@ -20,10 +20,14 @@ A **B2B sales pipeline generation system** that:
 ## System Components
 
 ### 1. Prospect Database
-- **Source:** OpenClaw research (prospects discovered via web_search, LinkedIn, Crunchbase, Y Combinator, AngelList)
-- **Format:** `workspaces/work/projects/SDR/prospects.json` (TOON format, canonical)
-- **Ownership:** OpenClaw writes `prospects.csv` (raw) → Claude Code validates → `prospects.json` (clean)
-- **Schema:** firstName, lastName, company, title, email, linkedin, location, timezone, track, status, dateAdded, notes
+- **Source:** Google Sheet (collaborative, live database)
+  - OpenClaw: Adds researched prospects (web_search, LinkedIn, Crunchbase, Y Combinator, AngelList)
+  - Kiana: Monitors progress, can edit/comment
+  - Claude Code: Reads for validation
+- **Canonical Location:** Google Sheet "Prospects" tab (shared doc, single source of truth)
+- **Execution Format:** `workspaces/work/projects/SDR/prospects.json` (TOON format, synced from Sheet)
+- **Schema:** firstName, lastName, company, title, email, linkedin, location, timezone, track, status, dateAdded, source, lastSent, lastReply, replyStatus, notes
+- **Sync:** Claude Code reads Google Sheet daily → validates → exports to prospects.json
 - **Size:** Grows week-to-week (starting volume TBD by OpenClaw, minimum viable for sends)
 
 ### 2. Send Execution Pipeline
@@ -57,14 +61,15 @@ A **B2B sales pipeline generation system** that:
 1. **OpenClaw:** Researches prospects (300+ target for initial ramp, exact volume TBD by OpenClaw)
    - Sources: LinkedIn, Y Combinator, Crunchbase, AngelList, web_search
    - Validates emails via Hunter.io or NeverBounce API
-   - Outputs: `prospects.csv` (raw research deliverable)
-   - Commits: `git add prospects.csv && git commit -m "research: add N prospects"`
+   - Adds rows to Google Sheet "Prospects" tab with all required fields
+   - Updates: Google Sheet (live source, no git commit needed)
 
-2. **Claude Code:** Validates research
-   - Runs `validate-prospects.js` on `prospects.csv`
-   - Deduplicates, cross-checks opt-outs.json, validates email syntax
-   - Outputs: `prospects.json` (TOON format, canonical database)
-   - Commits: `git add prospects.json && git commit -m "validate: N prospects validated, M duplicates removed"`
+2. **Claude Code:** Validates & syncs research
+   - Reads Google Sheet "Prospects" tab (via Google Sheets API)
+   - Runs `validate-prospects.js` on all rows
+   - Deduplicates, cross-checks opt-outs sheet, validates email syntax
+   - Outputs: `prospects.json` (TOON format, synced copy for execution)
+   - Commits: `git add prospects.json && git commit -m "sync: validated N prospects from Google Sheet, M duplicates noted"`
 
 ### Tuesday Morning
 3. **OpenClaw:** Builds send plan
@@ -90,6 +95,7 @@ A **B2B sales pipeline generation system** that:
      - Sends email via Graph API (from noreply@vtwo.co)
      - BCC: kiana.micari@vtwo.co (for Kiana visibility)
      - Logs to `outreach/sends.json`: recipient, template, subject, sent date, status
+     - Updates Google Sheet: Row status=sent, LastSent=now
    - Commits: `git add outreach/sends.json && git commit -m "sends: executed N sends from send-plan"`
 
 ### Tuesday-Thursday Evening
@@ -98,17 +104,23 @@ A **B2B sales pipeline generation system** that:
    - For each new message:
      - **Opt-out (unsubscribe, remove me, opt out, stop):**
        - Adds to `outreach/opt-outs.json`
+       - Adds to Google Sheet "OptOuts" tab
        - Updates `outreach/sends.json`: `st: opted_out`
+       - Updates Google Sheet: Row status=opted-out
      - **OOO (out of office, auto-reply):**
        - Updates `outreach/sends.json`: `fu_sd: [return date + 1 day]` (schedules follow-up)
+       - Updates Google Sheet: Row ReplyStatus=ooo, LastReply=now
      - **Positive (tell me more, let's talk, interested):**
        - Updates `outreach/sends.json`: `rpl_st: positive`
+       - Updates Google Sheet: Row ReplyStatus=positive, LastReply=now
        - Adds to `SDR_STATE.md` anomalies with `[HOT]` flag
        - Notifies Kiana immediately (hot lead)
      - **Negative (not interested, no budget, too busy):**
        - Updates `outreach/sends.json`: `rpl_st: negative`
+       - Updates Google Sheet: Row ReplyStatus=negative, LastReply=now
      - **Other (questions, feedback):**
        - Updates `outreach/sends.json`: `rpl_st: neutral`, logs reply content
+       - Updates Google Sheet: Row ReplyStatus=neutral, LastReply=now
    - Marks all processed messages as read in Outlook
    - Commits: `git add outreach/sends.json SDR_STATE.md && git commit -m "monitor: inbox sweep - X replies categorized"`
 
@@ -137,10 +149,13 @@ workspaces/work/projects/SDR/
 ├── ARCHITECTURE.md              ← System design (read-only)
 ├── OPENCLAW_HANDOFF.md          ← OpenClaw implementation spec (read-only)
 ├── SYSTEM_SPEC.md               ← THIS FILE (source of truth)
+├── GOOGLE_SHEETS_INTEGRATION.md ← Google Sheets setup (read-only)
 │
-├── prospects.csv                ← OpenClaw writes (raw research)
-├── prospects.json               ← Claude Code writes (TOON, validated, canonical)
+├── Google Sheet "Prospects"     ← CANONICAL SOURCE (OpenClaw + Kiana write, Claude Code reads)
+│
+├── prospects.json               ← Claude Code writes (TOON, synced from Google Sheet, for execution)
 ├── SDR_STATE.md                 ← OpenClaw writes (session state, updated Friday)
+├── SDR_CONFIG.json              ← Google Sheets config (gitignored, has Sheet ID + credentials paths)
 │
 ├── outreach/
 │   ├── templates.md             ← Email templates A-E (static)
@@ -150,11 +165,16 @@ workspaces/work/projects/SDR/
 │   └── weekly-reports.json      ← Metrics (TOON, updated Friday by OpenClaw)
 │
 ├── scripts/
-│   └── validate-prospects.js    ← Claude Code: CSV → TOON JSON
+│   ├── validate-prospects.js    ← Claude Code: validate prospect data
+│   └── sync-from-sheets.js      ← Claude Code: read Google Sheet → write prospects.json
 │
 └── secrets/
-    └── .env                     ← MSAL credentials (gitignored, maintained by deployment)
+    ├── .env                     ← MSAL credentials (gitignored, for Outlook)
+    ├── google-openclaw-credentials.json   ← Google API creds for OpenClaw (gitignored)
+    └── google-code-credentials.json       ← Google API creds for Claude Code (gitignored)
 ```
+
+**Key:** Google Sheet is the live, collaborative source. prospects.json is the synced copy for execution.
 
 ---
 
@@ -272,13 +292,23 @@ workspaces/work/projects/SDR/
 
 ## Blockers
 
-⛔ **Microsoft App Registration** (prerequisite for OpenClaw execution)
+⛔ **Google Sheets Setup** (prerequisite for both agents)
+- Kiana or admin must complete (see GOOGLE_SHEETS_INTEGRATION.md):
+  1. Create Google Cloud Project
+  2. Enable Google Sheets API
+  3. Create service accounts (openclaw-sdr, claude-code-sdr)
+  4. Generate JSON credentials and store in `secrets/`
+  5. Create/share Google Sheet with service account emails
+  6. Create `SDR_CONFIG.json` with Sheet ID and credential paths
+  7. Implement `scripts/sync-from-sheets.js` (Claude Code)
+
+⛔ **Microsoft App Registration** (prerequisite for email execution)
 - Kiana or Azure admin must complete:
   1. Register "V.Two SDR Agent" app in Azure
   2. Grant permissions: Mail.Send, Mail.Read, Mail.ReadWrite
   3. Create client secret
   4. Note: TENANT_ID, CLIENT_ID, CLIENT_SECRET
-  5. Store in `secrets/.env` before OpenClaw starts execution
+  5. Store in `secrets/.env` before OpenClaw starts email execution
 
 ---
 
@@ -298,27 +328,43 @@ workspaces/work/projects/SDR/
 ## Deployment
 
 ### Step 1: Approve Spec (Kiana)
-- Review this document
+- Review this document + GOOGLE_SHEETS_INTEGRATION.md
 - Confirm team assignments
 - Approve success criteria
 
-### Step 2: Complete App Registration (Kiana or Azure admin)
-- Follow prerequisite steps
-- Create `secrets/.env` with credentials
+### Step 2: Complete Google Sheets Setup (Kiana or admin)
+- Follow GOOGLE_SHEETS_INTEGRATION.md
+- Create Google Cloud Project + service accounts
+- Create/share Google Sheet
+- Store credentials in `secrets/`
+- Create `SDR_CONFIG.json`
 
-### Step 3: Activate OpenClaw
+### Step 3: Implement Sync Script (Claude Code)
+- Implement `scripts/sync-from-sheets.js`
+- Test: Read Google Sheet → write prospects.json
+- Verify: prospects.json generated correctly in TOON format
+
+### Step 4: Complete App Registration (Kiana or Azure admin)
+- Follow prerequisite steps (Microsoft side)
+- Create `secrets/.env` with MSAL credentials
+- Test: OpenClaw can authenticate to Outlook
+
+### Step 5: Activate OpenClaw
 - Read `OPENCLAW_HANDOFF.md`
+- Read `GOOGLE_SHEETS_INTEGRATION.md` (OpenClaw section)
 - Start Week 1 research (Monday morning)
-- Deliver `prospects.csv` Friday
+- Add rows to Google Sheet (live source)
 
-### Step 4: Validate & Deploy (Claude Code + OpenClaw)
-- Claude Code validates prospects
+### Step 6: Validate & Deploy (Claude Code + OpenClaw)
+- Claude Code syncs Google Sheet → prospects.json
 - OpenClaw builds send-plan.md Tuesday
 - Execute → monitor → report
 
 ---
 
 **System ready for deployment. Waiting on:**
-1. Kiana approval of this spec
-2. Microsoft App Registration completion
-3. OpenClaw activation signal
+1. Kiana approval of spec + Google Sheets plan
+2. Google Sheets infrastructure setup (Cloud Project, service accounts, creds)
+3. Claude Code sync script implementation
+4. Microsoft App Registration completion
+5. OpenClaw activation signal
