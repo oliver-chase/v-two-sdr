@@ -24,6 +24,22 @@
   --warning: #D97706;
   --success: #16A34A;
 
+  /* Status Badges — semantic colors for status indicators */
+  --status-error-bg:   #FEE2E2;
+  --status-error-fg:   #DC2626;
+  --status-error-border: #FCA5A5;
+  --status-warning-bg: #FEF3C7;
+  --status-warning-fg: #D97706;
+  --status-warning-border: #FCD34D;
+  --status-success-bg: #DCFCE7;
+  --status-success-fg: #16A34A;
+  --status-success-border: #86EFAC;
+  --status-info-bg:    #DCE4F5;
+  --status-info-fg:    #1F40AF;
+  --status-info-border: #A5BAEF;
+  --status-alert-bg:   #FFFBEB;
+  --status-alert-border: var(--warning);
+
   /* Semantic shorthands */
   --accent:       var(--accent-600);
   --accent-light: var(--accent-100);
@@ -248,9 +264,9 @@ a:focus {
 }
 
 .badge-active  { background: var(--accent-100); color: var(--accent-700); border-color: var(--accent-300); }
-.badge-ok      { background: #DCFCE7; color: var(--success); border-color: #86EFAC; }
-.badge-error   { background: #FEE2E2; color: var(--error);   border-color: #FCA5A5; }
-.badge-warning { background: #FEF3C7; color: var(--warning); border-color: #FCD34D; }
+.badge-ok      { background: var(--status-success-bg); color: var(--status-success-fg); border-color: var(--status-success-border); }
+.badge-error   { background: var(--status-error-bg); color: var(--status-error-fg); border-color: var(--status-error-border); }
+.badge-warning { background: var(--status-warning-bg); color: var(--status-warning-fg); border-color: var(--status-warning-border); }
 .badge-paused  { background: var(--bg); color: var(--text-secondary); border-color: var(--border); }
 
 /* ── Layout ──────────────────────────────────────────────────────── */

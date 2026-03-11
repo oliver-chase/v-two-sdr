@@ -123,8 +123,8 @@
   align-items: flex-start;
   gap: var(--space-12);
   padding: var(--space-12);
-  background: #FFFBEB;
-  border-left: 3px solid var(--warning);
+  background: var(--status-alert-bg);
+  border-left: 3px solid var(--status-alert-border);
   border-radius: var(--radius-card);
 }
 
@@ -184,21 +184,21 @@
 }
 
 .badge-high {
-  background: #FEE2E2;
-  color: var(--error);
-  border: 1px solid #FCA5A5;
+  background: var(--status-error-bg);
+  color: var(--status-error-fg);
+  border: 1px solid var(--status-error-border);
 }
 
 .badge-medium {
-  background: #FEF3C7;
-  color: var(--warning);
-  border: 1px solid #FCD34D;
+  background: var(--status-warning-bg);
+  color: var(--status-warning-fg);
+  border: 1px solid var(--status-warning-border);
 }
 
 .badge-low {
-  background: #DCFCE7;
-  color: var(--success);
-  border: 1px solid #86EFAC;
+  background: var(--status-success-bg);
+  color: var(--status-success-fg);
+  border: 1px solid var(--status-success-border);
 }
 
 /* Files */

@@ -69,9 +69,9 @@ describe('ProjectExecutionView', () => {
 
   it('provides time filtering options', () => {
     render(<ProjectExecutionView project={mockProject} />)
-    expect(screen.getByRole('button', { name: /today/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /custom/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /full history/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /show metrics for today/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /custom date range/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /available metrics history/i })).toBeInTheDocument()
   })
 
   it('shows uptime stat block with percentage', () => {

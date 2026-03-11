@@ -71,7 +71,7 @@ export default function ProjectDevelopmentView({ project }) {
           {blockers.length > 0 ? (
             blockers.map((blocker, idx) => (
               <div key={idx} className="blocker-item">
-                <span className="blocker-icon">⚠</span>
+                <span className="blocker-icon">[Warning]</span>
                 <span className="blocker-text">{blocker}</span>
               </div>
             ))
@@ -105,7 +105,7 @@ export default function ProjectDevelopmentView({ project }) {
           <div className="files-list">
             {files.map((file, idx) => (
               <div key={idx} className="file-item">
-                <span className="file-icon">📄</span>
+                <span className="file-icon">[File]</span>
                 <span className="file-name">{file}</span>
               </div>
             ))}

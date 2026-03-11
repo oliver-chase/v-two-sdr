@@ -40,18 +40,21 @@ export default function ProjectExecutionView({ project }) {
           <button
             className={`time-btn ${timeFilter === 'today' ? 'active' : ''}`}
             onClick={() => setTimeFilter('today')}
+            aria-label="Show metrics for today only"
           >
             Today
           </button>
           <button
             className={`time-btn ${timeFilter === 'custom' ? 'active' : ''}`}
             onClick={() => setTimeFilter('custom')}
+            aria-label="Show metrics for a custom date range"
           >
             Custom
           </button>
           <button
             className={`time-btn ${timeFilter === 'full' ? 'active' : ''}`}
             onClick={() => setTimeFilter('full')}
+            aria-label="Show all available metrics history"
           >
             Full History
           </button>
