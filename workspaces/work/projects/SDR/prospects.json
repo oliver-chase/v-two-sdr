@@ -1,36 +1,20 @@
 {
-  "prospects": [
-    {
-      "id": "p-001",
-      "fn": "Sarah",
-      "ln": "Chen",
-      "co": "TechStartup Inc",
-      "ti": "CTO",
-      "em": "sarah.chen@techstartup.io",
-      "li": "linkedin.com/in/sarahchen",
-      "lo": "San Francisco, CA",
-      "tz": "America/Los_Angeles",
-      "tr": "product-maker",
-      "st": "pending",
-      "ad": "2026-03-11",
-      "no": ""
-    }
-  ],
+  "prospects": [],
   "metadata": {
-    "totalProspects": 0,
-    "byTrack": {
+    "tot": 0,
+    "by_tr": {
       "ai-enablement": 0,
       "product-maker": 0,
       "pace-car": 0
     },
-    "byStatus": {
+    "by_st": {
       "pending": 0,
       "sent": 0,
       "replied": 0,
-      "opted-out": 0,
+      "opted_out": 0,
       "bounced": 0,
       "closed": 0
     },
-    "lastUpdated": "2026-03-11T00:00:00Z"
+    "lu": "2026-03-11T00:00:00Z"
   }
 }

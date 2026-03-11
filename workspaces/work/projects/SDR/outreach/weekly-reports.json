@@ -1,35 +1,8 @@
 {
-  "reports": [
-    {
-      "week": 1,
-      "startDate": "2026-03-10",
-      "endDate": "2026-03-14",
-      "reportDate": "2026-03-14T17:00:00Z",
-      "totalSends": 0,
-      "sendsByTrack": {
-        "ai-enablement": 0,
-        "product-maker": 0,
-        "pace-car": 0
-      },
-      "totalReplies": 0,
-      "replyRate": 0,
-      "repliesByTrack": {
-        "ai-enablement": 0,
-        "product-maker": 0,
-        "pace-car": 0
-      },
-      "bounces": 0,
-      "bounceRate": 0,
-      "optouts": 0,
-      "optoutRate": 0,
-      "topTemplate": null,
-      "topSubject": null,
-      "recommendations": "",
-      "notes": ""
-    }
-  ],
+  "reports": [],
   "metadata": {
-    "totalWeeksReported": 0,
-    "lastUpdated": "2026-03-11T00:00:00Z"
+    "tot_weeks": 0,
+    "lu": "2026-03-11T00:00:00Z"
   }
 }
+

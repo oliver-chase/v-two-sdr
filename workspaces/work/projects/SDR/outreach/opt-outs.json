@@ -1,17 +1,7 @@
 {
-  "optOuts": [
-    {
-      "email": "email@example.com",
-      "firstName": "First",
-      "lastName": "Last",
-      "company": "Company",
-      "dateAdded": "2026-03-11T00:00:00Z",
-      "reason": "unsubscribe",
-      "notes": ""
-    }
-  ],
+  "opt_outs": [],
   "metadata": {
-    "totalOptouts": 0,
-    "lastUpdated": "2026-03-11T00:00:00Z"
+    "tot": 0,
+    "lu": "2026-03-11T00:00:00Z"
   }
 }
