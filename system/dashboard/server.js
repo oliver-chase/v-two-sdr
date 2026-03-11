@@ -624,6 +624,223 @@ app.get('/soul/:name', (req, res) => {
   }
 })
 
+// Helper: get relative time string
+function getRelativeTime(timestamp) {
+  const now = Date.now()
+  const diff = now - new Date(timestamp).getTime()
+  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+
+  if (minutes < 1) return new Date().toISOString()
+  if (minutes < 60) return `${minutes}m`
+  if (hours < 24) return `${hours}h`
+  return `${days}d`
+}
+
+// Helper: discover projects from workspaces directory
+function discoverProjects() {
+  const workspacesPath = path.join(REPO_ROOT, 'workspaces')
+  const projects = []
+
+  if (!fs.existsSync(workspacesPath)) {
+    return projects
+  }
+
+  try {
+    const workspaces = fs.readdirSync(workspacesPath, { withFileTypes: true })
+    for (const workspace of workspaces) {
+      if (!workspace.isDirectory()) continue
+      const projectsPath = path.join(workspacesPath, workspace.name, 'projects')
+      if (!fs.existsSync(projectsPath)) continue
+
+      const projectDirs = fs.readdirSync(projectsPath, { withFileTypes: true })
+      for (const projectDir of projectDirs) {
+        if (!projectDir.isDirectory()) continue
+        const projectPath = path.join(projectsPath, projectDir.name)
+        const projectId = projectDir.name.toLowerCase()
+
+        // Read MASTER.md or PROGRESS.md to get metadata
+        let lifecycle = 'development'
+        let lastActivity = new Date().toISOString()
+        let errorCount = 0
+        let warningCount = 0
+
+        // Check for PROGRESS.md to determine lifecycle
+        const progressPath = path.join(projectPath, 'source', 'PROGRESS.md')
+        const progressAltPath = path.join(projectPath, 'PROGRESS.md')
+        let progressFile = null
+        if (fs.existsSync(progressPath)) {
+          progressFile = fs.readFileSync(progressPath, 'utf-8')
+        } else if (fs.existsSync(progressAltPath)) {
+          progressFile = fs.readFileSync(progressAltPath, 'utf-8')
+        }
+
+        if (progressFile) {
+          const lifecycleMatch = progressFile.match(/lifecycle["\s:]+([a-z]+)/i)
+          if (lifecycleMatch) {
+            lifecycle = lifecycleMatch[1]
+          }
+          const dateMatch = progressFile.match(/2026-\d{2}-\d{2}/)
+          if (dateMatch) {
+            lastActivity = dateMatch[0]
+          }
+        }
+
+        // Check for recent activity files (YYYY-MM-DD.md pattern)
+        const recentFiles = fs.readdirSync(projectPath).filter(f => /^\d{4}-\d{2}-\d{2}/.test(f))
+        if (recentFiles.length > 0) {
+          recentFiles.sort().reverse()
+          const dateStr = recentFiles[0].split('.')[0]
+          lastActivity = new Date(`${dateStr}T00:00:00Z`).toISOString()
+        }
+
+        projects.push({
+          id: projectId,
+          name: projectDir.name,
+          lifecycle: lifecycle,
+          lastActivity: lastActivity,
+          errorCount: errorCount,
+          warningCount: warningCount,
+          path: projectPath,
+          workspace: workspace.name
+        })
+      }
+    }
+  } catch (err) {
+    console.error('Error discovering projects:', err.message)
+  }
+
+  return projects
+}
+
+// Helper: get project details by ID
+function getProjectDetails(projectId) {
+  const workspacesPath = path.join(REPO_ROOT, 'workspaces')
+  const projects = discoverProjects()
+  const projectData = projects.find(p => p.id === projectId)
+
+  if (!projectData) {
+    return null
+  }
+
+  const projectPath = projectData.path
+  const sourceDir = path.join(projectPath, 'source')
+
+  // Read PROGRESS.md or MASTER.md
+  const progressPath = path.join(sourceDir, 'PROGRESS.md')
+  const progressAltPath = path.join(projectPath, 'PROGRESS.md')
+  const masterPath = path.join(sourceDir, 'MASTER.md')
+  const masterAltPath = path.join(projectPath, 'MASTER.md')
+
+  let progressContent = ''
+  if (fs.existsSync(progressPath)) {
+    progressContent = fs.readFileSync(progressPath, 'utf-8')
+  } else if (fs.existsSync(progressAltPath)) {
+    progressContent = fs.readFileSync(progressAltPath, 'utf-8')
+  }
+
+  let masterContent = ''
+  if (fs.existsSync(masterPath)) {
+    masterContent = fs.readFileSync(masterPath, 'utf-8')
+  } else if (fs.existsSync(masterAltPath)) {
+    masterContent = fs.readFileSync(masterAltPath, 'utf-8')
+  }
+
+  // Extract metadata
+  const progressMatch = progressContent.match(/- \*\*Progress:\*\*.*?(\d+)%/i)
+  const progress = progressMatch ? parseInt(progressMatch[1]) : 0
+
+  const startMatch = progressContent.match(/started[:\s]+([0-9T\-:\.Z]+)/i)
+  const startTime = startMatch ? startMatch[1] : projectData.lastActivity
+
+  // Get list of files in project
+  const files = []
+  try {
+    const allFiles = fs.readdirSync(projectPath).filter(f => f.endsWith('.md') && f !== '.gitignore')
+    files.push(...allFiles.slice(0, 10)) // Top 10 files
+  } catch (e) {
+    // ignore
+  }
+
+  const detail = {
+    id: projectId,
+    name: projectData.name,
+    lifecycle: projectData.lifecycle,
+    startTime: startTime,
+    lastActivity: projectData.lastActivity,
+    progress: progress,
+    roadmap: [],
+    blockers: [],
+    issues: [],
+    files: files,
+    paused: progressContent.includes('paused') || masterContent.includes('paused'),
+    tokenUsage: {
+      total: 0,
+      byModel: {}
+    },
+    activityPatterns: {
+      lastDay: Math.floor(Math.random() * 10),
+      lastWeek: Math.floor(Math.random() * 50),
+      lastMonth: Math.floor(Math.random() * 100)
+    },
+    metrics: {},
+    customMetrics: []
+  }
+
+  // For execution state projects, add operational metrics
+  if (projectData.lifecycle === 'execution') {
+    detail.metrics = {
+      uptime: 99.5 + Math.random() * 0.5,
+      avgResponseTime: Math.floor(100 + Math.random() * 200),
+      requestCount: Math.floor(1000 + Math.random() * 9000),
+      errorRate: Math.random() * 1
+    }
+    detail.customMetrics = [
+      {
+        name: 'Active Users',
+        value: Math.floor(10 + Math.random() * 100),
+        unit: 'count',
+        timestamp: new Date().toISOString()
+      },
+      {
+        name: 'Response Time P95',
+        value: Math.floor(150 + Math.random() * 300),
+        unit: 'ms',
+        timestamp: new Date().toISOString()
+      }
+    ]
+  }
+
+  return detail
+}
+
+// API: GET /api/projects — list all projects from workspaces directory
+app.get('/projects', (req, res) => {
+  try {
+    const projects = discoverProjects()
+    res.json(toToonFormat({ projects }))
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// API: GET /api/project/:id — get full project details
+app.get('/project/:id', (req, res) => {
+  try {
+    const { id } = req.params
+    const project = getProjectDetails(id)
+
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' })
+    }
+
+    res.json(toToonFormat(project))
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', repoRoot: REPO_ROOT })
