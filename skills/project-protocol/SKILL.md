@@ -91,6 +91,59 @@ Every task that can run in parallel must use branched subagents — never run pa
 
 ---
 
+## Task Sizing Rules
+
+**Every task must be completable in one focused subagent session.**
+
+If a task feels large, split it before dispatching:
+- A task is too large if it touches more than one view OR more than one data path
+- No task should require reading the full MASTER.md to execute
+
+The dispatch message must contain everything the subagent needs.
+
+---
+
+## Subagent Dispatch Rules
+
+**Every parallelizable task runs on its own branch with its own subagent** — never run tasks sequentially that could run simultaneously.
+
+Each dispatch message must include:
+- The task spec (complete, self-contained)
+- Names of existing components or hooks to reuse
+- These two lines exactly:
+  - `Design: read the frontend-design skill file and follow it. Self-review before committing.`
+  - `Protocol: read the project-protocol skill file for session start and end rules.`
+
+Do not pass MASTER.md or PROGRESS.md to subagents — they do not need the full brief, only their task.
+
+**Subagent context must stay at or under 2000 tokens per dispatch.**
+
+---
+
+## File Reading Rules
+
+**Never re-read a file that was already read in the current session** unless the file has been written to since it was last read.
+
+**Never re-read completed phases** — PROGRESS.md tells you where you are, start there.
+
+**Skill files are read once per session at start** — reference them by memory for the rest of the session unless a specific rule needs verification.
+
+---
+
+## Reporting Standards
+
+**Every response from every subagent must include:**
+- Model used
+- Tokens used
+- Task completed (status: DONE, DONE_WITH_CONCERNS, NEEDS_CONTEXT, or BLOCKED)
+- Tests passing (suite count and test count)
+
+**Main orchestrator reports the same after merging each branch.**
+
+**Always optimize for token efficiency** — never produce output that wastes tokens. Choose brevity over explanation unless clarification is critical.
+
+---
+
 ## Gap-Filling
 
 Read the repo, decide, document reasoning in a comment, and proceed.
