@@ -2,38 +2,39 @@
 
 ## Current State
 
-- **Phase:** 2 — Infrastructure & ControlPanel
-- **Phase Status:** ✅ COMPLETE
-- **Current Task:** None (Phase 2 complete, Phase 3 ready to start)
-- **Last Completed:** ControlPanel + all Phase 2 components (ConfigEditor, PluginsManager, AuditTrail, TokenChart, ModelUsage, CostCalculator, TrendAnalysis)
-- **Branch:** feature/dashboard-phase2-3
+- **Phase:** 3 — Intelligence & Advanced Views
+- **Phase Status:** 🔨 IN PROGRESS
+- **Current Task:** Phase 3, Task 1 — Projects List & Project Detail Views (✅ COMPLETE)
+- **Last Completed:** ProjectsList, ProjectDetail, ProjectDevelopmentView, ProjectExecutionView + API endpoints
+- **Branch:** feature/phase3-views-impl
 
 ## Test Suite
 
-- **Suites:** 16 passed, 16 total
-- **Tests:** 124 passed, 124 total
+- **Suites:** 20 passed, 20 total
+- **Tests:** 166 passed, 166 total
 - **Coverage:** 80%+ (target met)
 
 ## Decisions This Session
 
-- **Design System Overhaul:** Migrated from --pink-* variables to --accent-* (color-agnostic, theme-swappable)
-- **TypeScript → JavaScript:** Kept as JS per user preference (simpler, faster iteration)
-- **Haiku Default:** All component development uses Haiku model per project-protocol
-- **TDD Discipline:** All Phase 2 components written with tests-first approach
-- **Token Optimization:** Implemented TOON format for API responses (60-70% reduction target for Phase 3)
-- **Error Handling:** Added proper error states to ConfigEditor (fetch failures, validation, user feedback)
+- **TDD Approach:** Wrote 42 comprehensive tests before implementing components
+- **Component Hierarchy:** ProjectDetail routes to Development or Execution views based on project.lifecycle
+- **Project Discovery:** Server auto-reads workspaces/ directory and extracts metadata from PROGRESS.md/MASTER.md
+- **API Design:** Two endpoints: /projects (list) and /project/:id (detail) both return TOON format
+- **Development State:** Shows progress, roadmap, blockers, issues, files, token usage, activity patterns
+- **Execution State:** Shows operational metrics (uptime, response time, requests, errors), custom metrics, time filtering
+- **Design Compliance:** All components use IBM Plex Sans/Mono, --accent-* palette, stat blocks, badges; no icons/emoji
 
 ## Blockers or Open Questions
 
-- None currently. All Phase 2 work complete and verified.
+- None currently. Phase 3, Task 1 complete with 166 tests passing.
 
 ## Next Task
 
-- **Phase 3, Task 1:** Project Views (Development & Execution states)
-  - Description: Create project discovery from workspaces/, render development progress view + execution metrics view, add state transition UI
-  - Depends on: Phase 2 complete (✅), TOON API format ready (✅)
-  - Estimated scope: 3-4 component files, 40-50 tests, 1-2 hours Haiku work
+- **Phase 3, Task 2:** Agent & Persona Explorer
+  - Description: Multi-layer navigation (orchestrator → souls → personas → skills → team → relationships)
+  - Will leverage existing /api/agents, /api/agent/:name, /api/souls, /api/soul/:name endpoints
+  - Estimated scope: 2-3 component files, master/detail layout, 30-40 tests
 
 ---
 
-**Last Updated:** 2026-03-11 | **Model Used:** Claude Sonnet 4.6 | **Tokens:** ~15,000 (session summary + file creation)
+**Last Updated:** 2026-03-11 | **Model Used:** Claude Haiku 4.5 | **Tokens:** ~8,000 (this session)
