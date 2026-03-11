@@ -1,0 +1,251 @@
+/* DocsBrowser Component — Minimal Dashboard Aesthetic */
+
+.docs-browser-panel {
+  overflow: hidden;
+}
+
+.docs-wrapper {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 20px;
+  margin-top: 20px;
+  min-height: 500px;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+/* Tree Navigation */
+.docs-tree {
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  padding: 16px;
+  overflow-y: auto;
+  max-height: 600px;
+}
+
+.doc-node {
+  margin-bottom: 6px;
+}
+
+.doc-node-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+}
+
+.doc-expand-btn {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #9CA3AF;
+  cursor: pointer;
+  transition: transform 150ms ease, color 150ms ease;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.doc-expand-btn.expanded {
+  transform: rotate(90deg);
+}
+
+.doc-expand-btn:hover {
+  color: #6B7280;
+}
+
+.doc-expand-placeholder {
+  width: 20px;
+  flex-shrink: 0;
+}
+
+.doc-folder-icon,
+.doc-file-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.doc-folder-name {
+  font-size: 13px;
+  color: #6B7280;
+  font-weight: 600;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-item-btn {
+  background: transparent;
+  border: none;
+  color: #6B7280;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 13px;
+  text-align: left;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: background 150ms ease, color 150ms ease;
+  font-family: inherit;
+}
+
+.doc-item-btn:hover {
+  background: #F3F4F6;
+  color: #374151;
+}
+
+.doc-item-btn.selected {
+  background: #FDF2F8;
+  color: #E11D73;
+  font-weight: 600;
+}
+
+.doc-children {
+  margin-left: 12px;
+  margin-top: 4px;
+  padding-left: 12px;
+  border-left: 1px solid #E5E7EB;
+}
+
+/* File Viewer */
+.docs-viewer {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  animation: docsSlideIn 200ms ease-out;
+}
+
+@keyframes docsSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.viewer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid #E5E7EB;
+  background: #FFFFFF;
+}
+
+.viewer-header h3 {
+  margin: 0;
+  color: #111111;
+  font-size: 15px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.viewer-close {
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  color: #6B7280;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 150ms ease;
+  flex-shrink: 0;
+}
+
+.viewer-close:hover {
+  color: #111111;
+}
+
+.viewer-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  font-size: 13px;
+}
+
+.viewer-content pre {
+  margin: 0;
+  background: #F9FAFB;
+  padding: 16px;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-family: var(--font-mono, 'SF Mono', 'Fira Code', monospace);
+  line-height: 1.5;
+  color: #374151;
+  border: 1px solid #E5E7EB;
+}
+
+/* Empty State */
+.docs-viewer.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+}
+
+.empty-message {
+  color: #9CA3AF;
+  font-style: italic;
+  margin: 0;
+}
+
+.docs-viewer.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .docs-wrapper {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .docs-tree {
+    max-height: 300px;
+  }
+
+  .viewer-content {
+    max-height: 400px;
+  }
+}
+
+@media (max-width: 768px) {
+  .docs-tree {
+    max-height: 250px;
+  }
+
+  .viewer-header h3 {
+    font-size: 14px;
+  }
+
+  .viewer-content {
+    font-size: 13px;
+  }
+
+  .viewer-content pre {
+    padding: 12px;
+  }
+}

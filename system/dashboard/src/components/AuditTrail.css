@@ -1,0 +1,199 @@
+/* AuditTrail component styles */
+/* Uses only variables from design-system.css */
+
+.audit-trail {
+  font-family: var(--font-sans);
+  font-size: var(--text-15);
+  color: var(--text-primary);
+  padding: var(--space-24);
+}
+
+/* Header row: title + export button */
+.audit-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-16);
+}
+
+.audit-title {
+  font-family: var(--font-sans);
+  font-size: var(--text-20);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.audit-export-btn {
+  font-size: var(--text-13);
+  font-weight: 600;
+  padding: var(--space-8) var(--space-16);
+}
+
+/* Filters row */
+.audit-filters {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-16);
+  margin-bottom: var(--space-16);
+  flex-wrap: wrap;
+}
+
+.audit-filter-label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  font-family: var(--font-sans);
+  font-size: var(--text-11);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.audit-date-input,
+.audit-type-select {
+  font-family: var(--font-sans);
+  font-size: var(--text-13);
+  font-weight: 400;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: var(--space-8) var(--space-12);
+  height: var(--space-32);
+}
+
+.audit-date-input:focus,
+.audit-type-select:focus {
+  outline: 2px solid var(--accent-600);
+  outline-offset: 1px;
+}
+
+/* Table */
+.audit-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  margin-bottom: var(--space-16);
+}
+
+.audit-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-sans);
+  font-size: var(--text-13);
+}
+
+.audit-table thead tr {
+  background: var(--accent-100);
+  border-bottom: 1px solid var(--accent-300);
+}
+
+.audit-table th {
+  padding: var(--space-8) var(--space-12);
+  font-weight: 600;
+  font-size: var(--text-11);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent-700);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.audit-table td {
+  padding: var(--space-8) var(--space-12);
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+
+.audit-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.audit-table tbody tr:hover {
+  background: var(--accent-100);
+}
+
+/* Type badge */
+.audit-type-badge {
+  font-size: var(--text-11);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.audit-type-config   { background: var(--accent-100); color: var(--accent-700); border-color: var(--accent-300); }
+.audit-type-plugin   { background: #FFFBEB; color: var(--warning); border-color: #FCD34D; }
+.audit-type-skill    { background: #F0FDF4; color: var(--success); border-color: #86EFAC; }
+
+/* Old → new value */
+.audit-old-value {
+  font-family: var(--font-mono);
+  font-size: var(--text-11);
+  color: var(--text-secondary);
+  background: var(--bg);
+  border-radius: var(--radius-badge);
+  padding: var(--space-4);
+}
+
+.audit-arrow {
+  color: var(--text-secondary);
+  font-size: var(--text-11);
+  margin: 0 var(--space-4);
+}
+
+.audit-new-value {
+  font-family: var(--font-mono);
+  font-size: var(--text-11);
+  color: var(--text-primary);
+  background: var(--accent-100);
+  border-radius: var(--radius-badge);
+  padding: var(--space-4);
+}
+
+/* Skeleton cells */
+.audit-skeleton-cell {
+  height: 14px;
+  width: 80%;
+  border-radius: var(--radius-badge);
+}
+
+/* Empty state */
+.audit-empty {
+  font-family: var(--font-sans);
+  font-size: var(--text-15);
+  font-weight: 400;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: var(--space-48) var(--space-24);
+  margin: 0;
+}
+
+/* Pagination */
+.audit-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-16);
+}
+
+.audit-page-btn {
+  font-size: var(--text-13);
+  font-weight: 600;
+  padding: var(--space-4) var(--space-16);
+  min-width: 64px;
+}
+
+.audit-page-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.audit-page-indicator {
+  font-family: var(--font-mono);
+  font-size: var(--text-13);
+  color: var(--text-secondary);
+  min-width: 100px;
+  text-align: center;
+}

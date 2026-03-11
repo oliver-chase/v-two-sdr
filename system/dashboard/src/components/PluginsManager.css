@@ -1,0 +1,118 @@
+.plugins-manager {
+  font-family: var(--font-sans);
+}
+
+.plugins-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-16);
+}
+
+.plugins-heading {
+  font-family: var(--font-sans);
+  font-size: var(--text-20);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.plugins-bulk-actions {
+  display: flex;
+  gap: var(--space-8);
+}
+
+.plugins-search {
+  margin-bottom: var(--space-16);
+}
+
+/* Plugin list */
+.plugins-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.plugin-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  padding: var(--space-12) var(--space-16);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  font-family: var(--font-sans);
+}
+
+.plugin-name {
+  flex: 1;
+  font-size: var(--text-15);
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+.plugin-version {
+  font-size: var(--text-13);
+  font-weight: 400;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  min-width: 48px;
+}
+
+.plugin-toggle {
+  min-width: 72px;
+  font-size: var(--text-13);
+  font-weight: 600;
+  padding: var(--space-4) var(--space-12);
+}
+
+/* Empty state */
+.plugins-empty {
+  font-size: var(--text-15);
+  font-weight: 400;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: var(--space-32) 0;
+  margin: 0;
+}
+
+/* Skeleton loading */
+.plugins-skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  margin-top: var(--space-16);
+}
+
+.plugins-skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  padding: var(--space-12) var(--space-16);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+
+.skeleton-name {
+  flex: 1;
+  height: 16px;
+}
+
+.skeleton-version {
+  width: 48px;
+  height: 14px;
+}
+
+.skeleton-badge {
+  width: 56px;
+  height: 20px;
+}
+
+.skeleton-btn {
+  width: 72px;
+  height: 32px;
+}

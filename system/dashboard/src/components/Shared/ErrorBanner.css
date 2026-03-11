@@ -1,0 +1,122 @@
+/* ErrorBanner Component — Minimal Dashboard Aesthetic */
+
+.error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 16px;
+  background: #FEF2F2;
+  border-left: 4px solid #EF4444;
+  border-radius: 6px;
+  animation: errorSlideIn 200ms ease-out;
+}
+
+.error-banner-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1;
+}
+
+.error-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  color: #EF4444;
+}
+
+.error-message {
+  margin: 0;
+  color: #374151;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.error-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.error-retry {
+  background: #E11D73;
+  color: #FFFFFF;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.error-retry:hover {
+  background: #BE185D;
+}
+
+.error-retry:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(225, 29, 115, 0.2);
+}
+
+.error-dismiss {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  background: transparent;
+  color: #6B7280;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: color 150ms ease, background 150ms ease;
+}
+
+.error-dismiss:hover {
+  color: #374151;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.error-dismiss:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(225, 29, 115, 0.2);
+}
+
+@keyframes errorSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .error-banner {
+    animation: none;
+  }
+
+  .error-retry,
+  .error-dismiss {
+    transition: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .error-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .error-banner-actions {
+    align-self: flex-end;
+  }
+}
