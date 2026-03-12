@@ -1,8 +1,23 @@
-# CLAUDE.md — Project-Specific Startup (References agents/claude/INSTRUCTIONS.md)
+# CLAUDE.md — Startup Sequence for All Agents & Projects
 
-**MANDATORY:** Every Claude Code session working on SDR project must read `agents/claude/INSTRUCTIONS.md` first, then this file.
+## ⚠️ CRITICAL STARTUP ORDER (NON-NEGOTIABLE)
 
-This file is PROJECT-SPECIFIC. General rules are in `agents/claude/INSTRUCTIONS.md` (token reporting, hard rules, etc.).
+**You MUST follow this sequence. Do not skip or reorder:**
+
+1. **READ FIRST:** `agents/STRUCTURE-MANIFEST.md` (source of truth for ALL file locations)
+   - This document is AUTHORITATIVE and overrides everything else
+   - Run validation checklist (bash commands in STRUCTURE-MANIFEST.md)
+   - STOP if any validation fails
+
+2. **READ SECOND:** Agent-specific INSTRUCTIONS
+   - If Claude Code: `agents/claude/INSTRUCTIONS.md`
+   - If OpenClaw: `agents/openclaw/INSTRUCTIONS.md`
+
+3. **READ THIRD:** This file (CLAUDE.md — project startup guidance)
+
+4. **READ FOURTH:** Project files (PROGRESS.md, CHECKPOINT.md, MASTER.md)
+
+**If you deviate from this sequence, you WILL mess up the structure. Don't do it.**
 
 ---
 
