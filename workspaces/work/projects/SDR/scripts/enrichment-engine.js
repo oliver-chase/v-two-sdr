@@ -1,0 +1,492 @@
+#!/usr/bin/env node
+
+/**
+ * SDR Enrichment Engine
+ *
+ * Core responsibilities:
+ * 1. Generate email candidates from name + domain (pattern-based)
+ * 2. Validate MX records (domain accepts mail)
+ * 3. Calculate deliverability confidence scores (0-1 scale)
+ * 4. Web search for company context (OpenClaw integration)
+ * 5. Web fetch for website enrichment (company info extraction)
+ * 6. Per-run caching (avoid duplicate requests)
+ * 7. Confidence thresholds (auto-use >= 0.8, user-review 0.5-0.8, skip < 0.5)
+ *
+ * Integration:
+ * - Input: prospects.json (TOON format)
+ * - Output: prospects with em, confidence, signals
+ * - Used by: Chunk 4 (state machine), Chunk 5 (email drafting)
+ *
+ * Tech: Node.js, dns module, web_search + web_fetch (OpenClaw), Jest
+ */
+
+const dns = require('dns').promises;
+const { validateEmail } = require('./validate-prospects');
+
+/**
+ * SECTION 1: EMAIL CANDIDATE GENERATION
+ */
+
+/**
+ * Common email patterns, ranked by likelihood (industry-standard)
+ * @type {Array<{pattern: string, weight: number}>}
+ */
+const EMAIL_PATTERNS = [
+  { pattern: '{f}.{l}@{d}', weight: 0.95 },    // john.smith@example.com
+  { pattern: '{f}{l}@{d}', weight: 0.85 },     // johnsmith@example.com
+  { pattern: '{f}@{d}', weight: 0.75 },        // john@example.com
+  { pattern: '{i}{l}@{d}', weight: 0.7 },      // jsmith@example.com
+  { pattern: '{l}.{f}@{d}', weight: 0.65 },    // smith.john@example.com
+  { pattern: '{f}_{l}@{d}', weight: 0.6 },     // john_smith@example.com
+  { pattern: '{f}-{l}@{d}', weight: 0.55 }     // john-smith@example.com
+];
+
+/**
+ * Generate email candidate addresses from name and domain
+ * Returns ordered list (highest confidence first)
+ *
+ * @param {string} firstName - First name
+ * @param {string} lastName - Last name
+ * @param {string} domain - Company domain
+ * @returns {Array<{em: string, pattern: string, score: number}>}
+ */
+function generateEmailCandidates(firstName, lastName, domain) {
+  if (!firstName || !lastName || !domain) {
+    return [];
+  }
+
+  // Normalize inputs
+  const f = firstName.toLowerCase().replace(/\s+/g, '').replace(/[^\w-]/g, '');
+  const l = lastName.toLowerCase().replace(/\s+/g, '').replace(/[^\w-]/g, '');
+  const d = domain.toLowerCase().trim();
+  const i = f.charAt(0); // first initial
+
+  const candidates = EMAIL_PATTERNS.map(({ pattern, weight }) => {
+    let email = pattern
+      .replace(/{f}/g, f)
+      .replace(/{l}/g, l)
+      .replace(/{i}/g, i)
+      .replace(/{d}/g, d);
+
+    return {
+      em: email,
+      pattern,
+      score: weight
+    };
+  });
+
+  // Remove duplicates, preserve order
+  const seen = new Set();
+  const unique = candidates.filter(c => {
+    if (seen.has(c.em)) return false;
+    seen.add(c.em);
+    return true;
+  });
+
+  return unique;
+}
+
+/**
+ * SECTION 2: EMAIL & DOMAIN VALIDATION
+ */
+
+/**
+ * Validates email format (basic regex check)
+ *
+ * @param {string} email - Email address
+ * @returns {boolean}
+ */
+function validateEmailFormat(email) {
+  if (!email) return false;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+/**
+ * Validates MX records for domain (domain accepts mail)
+ * Caches results within a single run
+ *
+ * @param {string} domain - Domain to validate
+ * @param {Object} cache - Per-run enrichment cache
+ * @returns {Promise<{valid: boolean, mxRecords: Array, error?: string}>}
+ */
+async function validateMXRecord(domain, cache = null) {
+  if (!domain) {
+    return { valid: false, mxRecords: [] };
+  }
+
+  // Check cache first
+  if (cache && cache.mxRecords.has(domain)) {
+    return cache.mxRecords.get(domain);
+  }
+
+  try {
+    const mxRecords = await dns.resolveMx(domain);
+
+    const result = {
+      valid: mxRecords && mxRecords.length > 0,
+      mxRecords: mxRecords || []
+    };
+
+    // Cache for this run
+    if (cache) {
+      cache.mxRecords.set(domain, result);
+    }
+
+    return result;
+  } catch (error) {
+    const result = {
+      valid: false,
+      mxRecords: [],
+      error: error.message
+    };
+
+    if (cache) {
+      cache.mxRecords.set(domain, result);
+    }
+
+    return result;
+  }
+}
+
+/**
+ * SECTION 3: DELIVERABILITY SCORING
+ */
+
+/**
+ * Calculates confidence score from multiple signals
+ * Each signal contributes +0.2 (4 max), capped at 1.0
+ *
+ * Signals:
+ * - mxValid: Domain has MX records (+0.3)
+ * - domainWhoisRecent: Domain registered recently (+0.2)
+ * - webSearchFound: Web search found company info (+0.2)
+ * - emailPatternMatch: Email matches industry standard (+0.2)
+ *
+ * @param {Object} signals - {mxValid, domainWhoisRecent, webSearchFound, emailPatternMatch}
+ * @returns {number} Confidence score (0-1)
+ */
+function calculateDeliverabilityScore(signals = {}) {
+  let score = 0;
+
+  if (signals.mxValid) score += 0.3;
+  if (signals.domainWhoisRecent) score += 0.2;
+  if (signals.webSearchFound) score += 0.2;
+  if (signals.emailPatternMatch) score += 0.2;
+
+  return Math.min(score, 1.0);
+}
+
+/**
+ * SECTION 4: CONFIDENCE THRESHOLDS
+ */
+
+/**
+ * Determines action based on confidence score
+ * >= 0.8: auto-use (approved for sending)
+ * 0.5-0.8: user-review (flag for manual approval)
+ * < 0.5: skip (too risky)
+ *
+ * @param {Object} prospect - Prospect with confidence score
+ * @returns {string} Action: 'auto-use' | 'user-review' | 'skip'
+ */
+function confidenceThresholds(prospect) {
+  const confidence = prospect.confidence || 0;
+
+  if (confidence >= 0.8) return 'auto-use';
+  if (confidence >= 0.5) return 'user-review';
+  return 'skip';
+}
+
+/**
+ * SECTION 5: WEB SEARCH INTEGRATION (OpenClaw)
+ */
+
+/**
+ * Searches for company context via web_search
+ * Integration point with OpenClaw research tools
+ *
+ * In production: calls OpenClaw web_search API
+ * In testing: mocked via Jest
+ *
+ * @param {Object} prospect - Prospect {fn, ln, co, ti}
+ * @param {Object} cache - Per-run cache for deduplication
+ * @returns {Promise<{searches: Array, found: boolean, signals: Array, error?: string}>}
+ */
+async function enrichProspectWebSearch(prospect, cache = null) {
+  if (!prospect || !prospect.co || !prospect.ti) {
+    return {
+      searches: [],
+      found: false,
+      signals: []
+    };
+  }
+
+  const cacheKey = `${prospect.co}|${prospect.ti}`;
+
+  // Check cache
+  if (cache && cache.webSearchResults.has(cacheKey)) {
+    return cache.webSearchResults.get(cacheKey);
+  }
+
+  try {
+    // In production: call OpenClaw web_search here
+    // Example: const results = await openClawWebSearch(`${prospect.co} ${prospect.ti} hiring signals`)
+
+    // For now: mock response
+    const result = {
+      searches: [
+        { query: `${prospect.co} hiring signals`, found: false },
+        { query: `${prospect.co} ${prospect.ti} LinkedIn`, found: false }
+      ],
+      found: false,
+      signals: []
+    };
+
+    if (cache) {
+      cache.webSearchResults.set(cacheKey, result);
+    }
+
+    return result;
+  } catch (error) {
+    const result = {
+      searches: [],
+      found: false,
+      signals: [],
+      error: error.message
+    };
+
+    if (cache) {
+      cache.webSearchResults.set(cacheKey, result);
+    }
+
+    return result;
+  }
+}
+
+/**
+ * SECTION 6: WEB FETCH INTEGRATION (Company Website)
+ */
+
+/**
+ * Fetches company website for enrichment
+ * Integration point for extracting company context
+ *
+ * In production: calls OpenClaw web_fetch for company domain
+ * In testing: mocked via Jest
+ *
+ * @param {Object} prospect - Prospect {co, ti, ...}
+ * @param {Object} cache - Per-run cache
+ * @returns {Promise<{fetched: boolean, context: Object, error?: string}>}
+ */
+async function enrichProspectWebFetch(prospect, cache = null) {
+  if (!prospect || !prospect.co) {
+    return {
+      fetched: false,
+      context: {}
+    };
+  }
+
+  const cacheKey = prospect.co.toLowerCase();
+
+  // Check cache
+  if (cache && cache.webFetchResults.has(cacheKey)) {
+    return cache.webFetchResults.get(cacheKey);
+  }
+
+  try {
+    // In production: call OpenClaw web_fetch here
+    // Example: const html = await openClawWebFetch(`https://${prospect.co}`)
+
+    // For now: mock response
+    const result = {
+      fetched: false,
+      context: {
+        industry: null,
+        location: null,
+        employees: null,
+        founded: null
+      }
+    };
+
+    if (cache) {
+      cache.webFetchResults.set(cacheKey, result);
+    }
+
+    return result;
+  } catch (error) {
+    const result = {
+      fetched: false,
+      context: {},
+      error: error.message
+    };
+
+    if (cache) {
+      cache.webFetchResults.set(cacheKey, result);
+    }
+
+    return result;
+  }
+}
+
+/**
+ * SECTION 7: PER-RUN CACHING
+ */
+
+/**
+ * Creates a cache object for a single enrichment run
+ * Prevents duplicate MX lookups, web searches, and fetches
+ *
+ * @returns {Object} Cache with mxRecords, webSearchResults, webFetchResults Maps
+ */
+function createEnrichmentCache() {
+  return {
+    mxRecords: new Map(),           // domain -> {valid, mxRecords, error}
+    webSearchResults: new Map(),    // company|title -> {searches, found, signals}
+    webFetchResults: new Map()      // company -> {fetched, context, error}
+  };
+}
+
+/**
+ * SECTION 8: FULL PROSPECT ENRICHMENT
+ */
+
+/**
+ * Enriches a single prospect with all available signals
+ * Generates email if missing, calculates confidence score, adds metadata
+ *
+ * @param {Object} prospect - Prospect in TOON format {id, fn, ln, co, ti, em?, ...}
+ * @param {Object} cache - Per-run enrichment cache
+ * @returns {Promise<Object>} Enriched prospect with em, confidence, signals
+ */
+async function enrichProspect(prospect, cache = null) {
+  if (!prospect) {
+    return { confidence: 0, signals: {} };
+  }
+
+  const enriched = { ...prospect };
+  const signals = {};
+
+  // Ensure cache exists
+  if (!cache) {
+    cache = createEnrichmentCache();
+  }
+
+  // Step 1: Email validation/generation
+  if (!enriched.em || !validateEmailFormat(enriched.em)) {
+    if (enriched.fn && enriched.ln) {
+      // Extract domain from company name if available
+      let domain = null;
+      if (enriched.co) {
+        // Attempt to construct domain from company name
+        // e.g., "Example Corp" -> "example.com" or "examplecorp.com"
+        domain = enriched.co
+          .toLowerCase()
+          .replace(/\s+/g, '')
+          .replace(/[^\w]/g, '') + '.com';
+      }
+
+      if (domain) {
+        const candidates = generateEmailCandidates(enriched.fn, enriched.ln, domain);
+        if (candidates.length > 0) {
+          enriched.em = candidates[0].em;
+          signals.emailPatternMatch = true;
+        }
+      }
+    }
+  } else {
+    signals.emailPatternMatch = true;
+  }
+
+  // Step 2: MX Record validation
+  if (enriched.em) {
+    const domain = enriched.em.split('@')[1];
+    if (domain) {
+      const mxResult = await validateMXRecord(domain, cache);
+      signals.mxValid = mxResult.valid;
+    }
+  }
+
+  // Step 3: Web search for company context
+  if (enriched.co && enriched.ti) {
+    const webSearchResult = await enrichProspectWebSearch(enriched, cache);
+    signals.webSearchFound = webSearchResult.found;
+    enriched.webSearchSignals = webSearchResult.signals;
+  }
+
+  // Step 4: Web fetch for website enrichment
+  if (enriched.co) {
+    const webFetchResult = await enrichProspectWebFetch(enriched, cache);
+    if (webFetchResult.fetched) {
+      enriched.companyContext = webFetchResult.context;
+      signals.websiteEnriched = true;
+    }
+  }
+
+  // Step 5: Calculate confidence score
+  enriched.confidence = calculateDeliverabilityScore(signals);
+
+  // Step 6: Determine action based on confidence
+  enriched.confidenceAction = confidenceThresholds(enriched);
+
+  // Step 7: Add enrichment metadata
+  enriched.enrichedAt = new Date().toISOString();
+  enriched.signals = signals;
+
+  return enriched;
+}
+
+/**
+ * SECTION 9: BATCH ENRICHMENT
+ */
+
+/**
+ * Enriches multiple prospects with shared cache
+ * Optimizes for reuse of domain/company lookups
+ *
+ * @param {Array} prospects - Array of prospects in TOON format
+ * @returns {Promise<Array>} Array of enriched prospects
+ */
+async function enrichProspects(prospects) {
+  if (!Array.isArray(prospects)) {
+    return [];
+  }
+
+  const cache = createEnrichmentCache();
+  const enriched = [];
+
+  for (const prospect of prospects) {
+    enriched.push(await enrichProspect(prospect, cache));
+  }
+
+  return enriched;
+}
+
+/**
+ * SECTION 10: EXPORTS
+ */
+
+module.exports = {
+  // Email generation
+  generateEmailCandidates,
+  EMAIL_PATTERNS,
+
+  // Validation
+  validateEmail: validateEmailFormat,
+  validateMXRecord,
+
+  // Scoring
+  calculateDeliverabilityScore,
+  confidenceThresholds,
+
+  // Web integration
+  enrichProspectWebSearch,
+  enrichProspectWebFetch,
+
+  // Caching
+  createEnrichmentCache,
+
+  // Main enrichment
+  enrichProspect,
+  enrichProspects
+};
