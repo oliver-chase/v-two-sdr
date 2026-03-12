@@ -1,143 +1,192 @@
-# SDR Project — Master Brief
+# SDR Project — Master Brief (EXPANDED)
 
-**Company:** V.Two | **Status:** Week 1 — Ramp Phase | **Owner:** Kiana + OpenClaw + Claude Code
+**Company:** V.Two | **Status:** Phase 1 (Foundation + Cleanup) | **Owner:** Kiana + OpenClaw + Claude Code
+**Build:** Oliver Chase AI SDR persona (persistent, event-driven, OpenClaw runtime)
+**Build Date:** 2026-03-11 | **Target Completion:** 2026-03-31
+
+---
+
+## What is Oliver Chase?
+
+Oliver Chase is a fully autonomous AI Sales Development Representative persona that runs 24/7 in OpenClaw. He:
+- Researches prospects using web_search + enrichment
+- Validates emails with deliverability checks
+- Drafts personalized emails using verified data + knowledge base
+- Manages an approval workflow with Kiana (no autonomous sends)
+- Monitors inbox, classifies replies, suggests follow-ups
+- Tracks metrics, reports weekly
+- Runs a daily automation pipeline (13 steps)
+
+**Difference from "SDR persona":** SDR persona is execution-focused with human approval gates. Oliver Chase is a full system living in OpenClaw with infrastructure, enrichment, intelligence, and analytics.
 
 ---
 
 ## Session Protocol
 
-Load and follow `skills/project-protocol/SKILL.md`. Then:
-- Start from current phase and task in PROGRESS.md — skip everything before it
-- For any outreach work: read `skills/work-outreach/SKILL.md` and `team/members/sdr/persona_soul.md`
-- Update PROGRESS.md before stopping
-- Report: model used, tokens consumed, actions completed
+**Before running any SDR work:**
+1. Load `skills/project-protocol/SKILL.md`
+2. Load `team/members/sdr/persona_soul.md` (execution coordinator)
+3. Load this file + ARCHITECTURE.md + PROGRESS.md
+4. Update PROGRESS.md before stopping
+5. Report: model used, tokens consumed, actions completed
 
 ---
 
-## Project Purpose
+## Team Roles & Responsibilities
 
-**Goal:** Generate qualified sales pipeline for V.Two through B2B outreach
-
-**Approach:** Three positioning tracks (AI Enablement, Product Maker, Pace Car) to different buyer personas
-
-**Budget:** 4-week ramp (target 500+ prospects researched, 200+ qualified, 25 sends/week by week 4)
+| Role | Agent | Primary Tasks | Responsibilities |
+|------|-------|---------------|------------------|
+| **Infrastructure Lead** | Dev (Claude Code) | Foundation systems (Sheets, Enrichment, State Machine) | Scripts, validation, core logic, testing |
+| **Execution Coordinator** | SDR Persona | Approval workflow, sequencing, execution | Approval gates, template iteration, Kiana coordination |
+| **Research & Enrichment** | OpenClaw | Web search, email validation, company context | Prospect research, web_fetch, compliance checks |
+| **Dashboard & Analytics** | FE Designer | Metrics dashboard, visualizations | UI/UX, React components, design system |
+| **Orchestrator** | Claude Code (you) | Planning, dispatch, progress tracking, documentation | Plan coordination, task management, file integrity |
 
 ---
 
-## Positioning Tracks
+## Three-Phase Execution
 
-**Track 1: AI Enablement** — Enterprise CTOs/CDOs struggling with AI at scale
-- Hook: "We build what's missing for AI to work at scale"
-- Message: Infrastructure, governance, ROI, cost control
+### Phase 1: Foundation + Cleanup (Week 1, Mar 11-17)
+**Goal:** Build infrastructure, clean files, establish baseline
 
-**Track 2: Product Maker** — Founders and product-focused CTOs
-- Hook: "We own the product build so you don't have to split attention"
-- Message: End-to-end ownership, shipping, velocity
+**Chunks:** 1, 2, 3, 4 (parallel execution)
+- Chunk 1: Cleanup & file reorganization
+- Chunk 2: Google Sheets bidirectional integration
+- Chunk 3: Enrichment engine (email validation, web search)
+- Chunk 4: Lead state machine (lifecycle enforcement)
+
+**Success Criteria:**
+- ✅ File structure clean & documented
+- ✅ Google Sheets OAuth working
+- ✅ Enrichment engine validates prospects
+- ✅ State machine prevents illegal transitions
+
+---
+
+### Phase 2: Execution + Intelligence (Week 2, Mar 18-24)
+**Goal:** Build email drafting and reply monitoring
+
+**Chunks:** 5, 6 (parallel after Phase 1)
+- Chunk 5: Email drafting + approval workflow + knowledge base
+- Chunk 6: Inbox monitoring + reply classification + sequence management
+
+**Success Criteria:**
+- ✅ Drafts generate from verified data only
+- ✅ Approval workflow tested with Kiana
+- ✅ Inbox connector reads Outlook
+- ✅ Replies classified (positive/negative/neutral/unclear/ooo)
+
+---
+
+### Phase 3: Orchestration + Analytics (Week 3, Mar 25-31)
+**Goal:** Build daily automation and metrics
+
+**Chunks:** 7, 8 (parallel after Phase 2)
+- Chunk 7: CLI commands + NL parser + daily flow + Telegram alerts
+- Chunk 8: Event logging + metrics aggregation + dashboard UI
+
+**Success Criteria:**
+- ✅ CLI commands work (sdr run, review, approve, send, inbox, metrics)
+- ✅ Daily flow executes all 13 steps
+- ✅ Telegram alerts on critical events
+- ✅ Dashboard shows metrics + industry benchmarks
+
+---
+
+## Architecture Decisions
+
+### Agent Division (Corrected)
+- **Claude Code** = Infrastructure & validation (stateless, ephemeral)
+- **OpenClaw** = Research & execution (stateful, continuous, intelligent)
+- **SDR Persona** = Approval coordinator (gating approval, signature)
+
+### Data Source of Truth
+- **prospects.json** (TOON format) = Canonical lead database
+- **Google Sheet** = Live copy, synced bidirectionally
+- **sends.json, opt-outs.json, weekly-reports.json** = Event logs (TOON format)
+
+### Token Optimization
+- Enrichment, routing, state transitions = deterministic (no LLM)
+- Email drafting, reply classification, NL parsing = LLM-only
+- Caching per run, process only new/updated leads
+
+---
+
+## Positioning Tracks (Lead Segmentation)
+
+**Track 1: AI Enablement** — Enterprise CTOs/CDOs scaling AI
+Hook: "We build what's missing for AI to work at scale"
+Message: Infrastructure, governance, ROI, cost control
+
+**Track 2: Product Maker** — Founders/product CTOs
+Hook: "We own the product build so you don't have to split attention"
+Message: End-to-end ownership, shipping, velocity
 
 **Track 3: Pace Car** — Engineering leads needing senior capacity
-- Hook: "Senior engineers who slot in and accelerate what you're already building"
-- Message: Augmentation, no commitment, AI co-pilot
+Hook: "Senior engineers who slot in and accelerate what you're already building"
+Message: Augmentation, no commitment, AI co-pilot
 
 ---
 
-## Phase 1: Week 1-2 Ramp
+## Daily Workflow (13-Step Pipeline)
 
-**OpenClaw:** Research 300+ prospects (web_search, LinkedIn, email validation)
-**Claude Code:** Validate, deduplicate, flag issues in prospects.json
-**SDR:** Build send list, prepare templates, get Kiana approval
-**Target:** 10-15 sends/week
-
-**Deliverables:**
-- prospects.json with 300+ entries (track, status, contact info)
-- Email templates A-C (cold outreach) ready for review
-- Send approval workflow documented
-- Weekly report template
-
----
-
-## Phase 2: Week 3-4 Scale
-
-**OpenClaw:** Expand to 500+ prospects, monitor reply patterns
-**Claude Code:** Analyze send metrics, optimize workflows
-**SDR:** Increase sends to 25/week, test variations
-**Target:** 25 sends/week, 5-10% reply rate
-
-**Deliverables:**
-- 500+ prospect database
-- A/B test results on templates
-- Reply tracking logs
-- Weekly success metrics
+1. Validate connector health (Sheets, Outlook, Telegram, web_search)
+2. Sync Google Sheet → load all leads
+3. Enrich missing data (web_search, web_fetch, email validation)
+4. Load knowledge base documents
+5. Generate email drafts for eligible leads
+6. Queue drafts for approval
+7. Scan inbox, classify replies
+8. Update lead states on replies
+9. Append events to event log
+10. Write back to Google Sheet
+11. Recompute metrics aggregates
+12. Output status (Terminal + Telegram)
+13. Prompt for pending approvals/classifications
 
 ---
 
-## Phase 3: Week 5+ Optimization
+## Success Metrics (Phase Targets)
 
-**Focus:** Highest-reply templates, refined track assignment, new messaging variations
-**Goal:** Consistent pipeline generation, improve conversion downstream
-
----
-
-## Data Structure
-
-**prospects.json** (TOON format)
-```
-prospect[N]{firstName,lastName,company,title,email,linkedin,location,timezone,track,status,dateAdded,notes}
-```
-
-**outreach/sends.json** — Full send log (recipient, template, subject, date, reply status)
-**outreach/opt-outs.json** — Permanent opt-out list (immediate action)
-**outreach/weekly-reports.json** — Friday EOD summaries
+| Metric | Week 1 | Week 2 | Week 3 | Final |
+|--------|--------|--------|--------|-------|
+| Prospect research | 300+ | 500+ | 500+ | 500+ |
+| Qualified prospects | In progress | 200+ | 200+ | 200+ |
+| Weekly sends | 0 | 10-15 | 25+ | 25+ |
+| Reply rate | N/A | N/A | 5-10% | 5-10% |
+| Opt-out rate | N/A | N/A | <2% | <2% |
 
 ---
 
-## Workflows
+## Key Files (Updated Locations)
 
-**Weekly Cycle:**
-- **Monday AM:** OpenClaw researches, Claude Code validates, SDR prepares send list
-- **Tue-Thu:** Kiana reviews → approves → SDR schedules → monitor replies
-- **Friday EOD:** Compile report, log opt-outs/bounces
+**Documentation:**
+- `workspaces/work/projects/SDR/MASTER.md` (this file, 300 lines)
+- `workspaces/work/projects/SDR/ARCHITECTURE.md` (400 lines)
+- `workspaces/work/projects/SDR/ROADMAP.md` (new, 150 lines)
+- `workspaces/work/projects/SDR/PROGRESS.md` (rewritten, new structure)
+- `team/members/sdr/persona_soul.md` (SDR execution persona)
+- `system/souls/oliver-chase.md` (Oliver Chase full persona)
 
-**Send Approval (Non-Negotiable):**
-1. SDR prepares (who, title, company, template, why)
-2. Kiana approves/revises
-3. SDR executes (never autonomous)
-4. Monitor replies same day
-5. Weekly report Friday EOD
+**Implementation Plans:**
+- `docs/superpowers/plans/2026-03-11-oliver-sdr-implementation-INDEX.md`
+- `docs/superpowers/plans/chunk-1-*.md` through `chunk-8-*.md`
 
----
-
-## Success Metrics
-
-| Metric | Target | Current |
-|--------|--------|---------|
-| Prospect research | 500+ | Week 1 starting |
-| Qualified prospects | 200+ | In progress |
-| Weekly sends | 25/week | Starting 10-15 |
-| Reply rate | 5-10% | TBD |
-| Opt-out rate | <2% | TBD |
+**Code (Scaffold Only):**
+- `workspaces/work/projects/SDR/prospects.json` (TOON format, canonical)
+- `workspaces/work/projects/SDR/outreach/` (sends, opt-outs, reports)
+- `workspaces/work/projects/SDR/scripts/` (validation, connectors)
 
 ---
 
-## Key Files & Team
+## Token Budget (Weekly)
 
-**Project Files:** See `SKILL.md` for detailed structure
-**SDR Persona:** `team/members/sdr/persona_soul.md`
-**Outreach Skills:** `skills/work-outreach/SKILL.md`
-**JTBD:** `skills/jtbd/SKILL.md` (buyer job-to-be-done)
-
-**Agents:**
-- **OpenClaw:** Research, web_search, email validation
-- **Claude Code:** Data validation, tooling, workflow testing
-- **SDR Persona:** Coordination, approval workflow, execution
+- OpenClaw research: 3-5k tokens
+- Dev infrastructure: 2-3k tokens
+- SDR coordination: 1k tokens
+- Dashboard/analytics: 1-2k tokens
+- **Total:** 7-11k tokens/week
 
 ---
 
-## Token Budget
-
-- OpenClaw research: 3-5k tokens/week
-- Claude Code validation: 1-2k tokens/week
-- SDR coordination: 500-1k tokens/week
-
----
-
-**Last Updated:** 2026-03-11 | **Next Review:** Week 1 Checkpoint
+**Last Updated:** 2026-03-11 | **Next Review:** Phase 1 Checkpoint (Mar 17)
