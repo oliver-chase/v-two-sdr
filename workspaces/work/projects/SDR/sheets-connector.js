@@ -86,8 +86,8 @@ class GoogleSheetsConnector {
       return this.schema;
     }
 
-    if (!this.doc) {
-      throw new Error('Not authenticated. Call authenticate() first.');
+    if (!this.doc || !this.doc.sheetsByTitle) {
+      throw new Error('Google Sheets authentication required. Call authenticate() first.');
     }
 
     const sheet = this.doc.sheetsByTitle[this.sheetName];
@@ -142,7 +142,7 @@ class GoogleSheetsConnector {
    */
   async readProspects(options = {}) {
     if (!this.doc) {
-      throw new Error('Not authenticated. Call authenticate() first.');
+      throw new Error('Google Sheets authentication required. Call authenticate() first.');
     }
 
     if (!this.fieldMapping) {
@@ -180,7 +180,7 @@ class GoogleSheetsConnector {
    */
   async readOptOuts() {
     if (!this.doc) {
-      throw new Error('Not authenticated. Call authenticate() first.');
+      throw new Error('Google Sheets authentication required. Call authenticate() first.');
     }
 
     const sheet = this.doc.sheetsByTitle[this.optOutsSheetName];
@@ -205,7 +205,7 @@ class GoogleSheetsConnector {
    */
   async appendProspects(toonProspects, options = {}) {
     if (!this.doc) {
-      throw new Error('Not authenticated. Call authenticate() first.');
+      throw new Error('Google Sheets authentication required. Call authenticate() first.');
     }
 
     if (!this.fieldMapping) {
@@ -266,7 +266,7 @@ class GoogleSheetsConnector {
    */
   async updateProspectStatus(email, newStatus) {
     if (!this.doc) {
-      throw new Error('Not authenticated. Call authenticate() first.');
+      throw new Error('Google Sheets authentication required. Call authenticate() first.');
     }
 
     const sheet = this.doc.sheetsByTitle[this.sheetName];
@@ -297,7 +297,7 @@ class GoogleSheetsConnector {
    */
   async fullSync() {
     if (!this.doc) {
-      throw new Error('Not authenticated. Call authenticate() first.');
+      throw new Error('Google Sheets authentication required. Call authenticate() first.');
     }
 
     if (!this.fieldMapping) {
@@ -352,7 +352,7 @@ class GoogleSheetsConnector {
     this.apiCallTimes.push(now);
     this.apiCallCount++;
 
-    return fn();
+    return fn ? fn() : undefined;
   }
 
   /**

@@ -156,9 +156,9 @@ function validateFieldMapping(mapping) {
     }
   }
 
-  // Check for duplicate mappings
+  // Check for duplicate mappings (count from values array, not Set)
   const fieldCounts = new Map();
-  for (const toonField of mappedToonFields) {
+  for (const toonField of Object.values(mapping)) {
     fieldCounts.set(toonField, (fieldCounts.get(toonField) || 0) + 1);
   }
 

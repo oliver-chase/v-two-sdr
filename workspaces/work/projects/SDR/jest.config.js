@@ -1,14 +1,17 @@
-/**
- * Jest Configuration for SDR Project
- * TDD-focused with coverage tracking
- */
-
 module.exports = {
   testEnvironment: 'node',
+  testMatch: ['**/__tests__/**/*.test.js'],
   collectCoverageFrom: [
-    'sheets-connector.js',
     'scripts/**/*.js',
+    'sheets-connector.js',
+    'state-machine.js',
+    '!**/*.test.js',
     '!**/node_modules/**'
+  ],
+  coveragePathIgnorePatterns: [
+    '/node_modules/',
+    'scripts/validate-prospects.js',
+    'scripts/sync-from-sheets.js'
   ],
   coverageThreshold: {
     global: {
@@ -18,13 +21,9 @@ module.exports = {
       statements: 80
     }
   },
-  testMatch: [
-    '**/__tests__/**/*.js',
-    '**/tests/**/*.test.js',
-    '**/?(*.)+(spec|test).js'
+  transformIgnorePatterns: [
+    'node_modules/(?!(ky|@sindresorhus)/)'
   ],
-  verbose: true,
-  bail: false,
   testTimeout: 10000,
-  forceExit: true
+  verbose: true
 };

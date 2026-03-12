@@ -126,7 +126,7 @@ describe('Schema Inference', () => {
   test('inferSchema: should detect optional fields', () => {
     const headers = [
       'FirstName', 'LastName', 'Email', 'Company', 'Title',
-      'Notes', 'Source', 'DateAdded'
+      'LinkedIn', 'Notes', 'Source', 'DateAdded'
     ];
     const schema = inferSchema(headers);
 
@@ -422,6 +422,13 @@ describe('GoogleSheetsConnector — Field Confirmation Workflow', () => {
 
   beforeEach(() => {
     connector = new GoogleSheetsConnector(MOCK_CONFIG);
+    connector.doc = {
+      sheetsByTitle: {
+        Prospects: {
+          getRows: jest.fn().mockResolvedValue(MOCK_SHEET_ROWS)
+        }
+      }
+    };
   });
 
   test('confirmFieldMapping: should validate user-provided mapping', async () => {
@@ -700,7 +707,6 @@ describe('Error Handling', () => {
   });
 
   test('appendProspects: should retry on transient failures', async () => {
-    let callCount = 0;
     connector.doc = {
       useServiceAccountAuth: jest.fn().mockResolvedValue(undefined),
       loadInfo: jest.fn().mockResolvedValue(undefined),
@@ -711,6 +717,9 @@ describe('Error Handling', () => {
             .mockResolvedValueOnce([])
         }
       }
+    };
+    connector.fieldMapping = {
+      FirstName: 'fn', LastName: 'ln', Email: 'em', Company: 'co', Title: 'ti'
     };
 
     const result = await connector.appendProspects([MOCK_TOON_PROSPECTS[0]], { retries: 3 });
