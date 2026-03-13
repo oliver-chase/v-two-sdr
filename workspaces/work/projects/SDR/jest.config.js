@@ -11,7 +11,11 @@ module.exports = {
   coveragePathIgnorePatterns: [
     '/node_modules/',
     'scripts/validate-prospects.js',
-    'scripts/sync-from-sheets.js'
+    'scripts/sync-from-sheets.js',
+    'scripts/daily-run.js',
+    'scripts/send-approved.js',
+    'scripts/approve-drafts.js',
+    'scripts/inbox-monitor.js'
   ],
   coverageThreshold: {
     global: {

@@ -884,255 +884,135 @@ app.get('/project/:id', (req, res) => {
   }
 })
 
-// API: GET /api/sdr/metrics — SDR outreach metrics
-app.get('/sdr/metrics', (req, res) => {
+// Helper: read and parse a JSON file safely, returning null on any error
+function readJsonFile(filePath) {
   try {
-    const sendsPath = path.join(REPO_ROOT, 'workspaces/work/projects/SDR/outreach/sends.json')
-    const optOutsPath = path.join(REPO_ROOT, 'workspaces/work/projects/SDR/outreach/opt-outs.json')
-    const weeklyReportsPath = path.join(REPO_ROOT, 'workspaces/work/projects/SDR/outreach/weekly-reports.json')
-    const sdrStatePath = path.join(REPO_ROOT, 'workspaces/work/projects/SDR/SDR_STATE.md')
-
-    // Initialize metrics with safe defaults
-    const metrics = {
-      ts: new Date().toISOString(),
-      tot_sent: 0,
-      tot_replies: 0,
-      reply_rate: 0,
-      pos_replies: 0,
-      pos_reply_rate: 0,
-      opt_outs: 0,
-      opt_out_rate: 0,
-      by_track: {
-        ai_enablement: 0,
-        product_maker: 0,
-        pace_car: 0
-      },
-      seq_stages: {
-        pending: 0,
-        sent: 0,
-        followup: 0,
-        closed: 0
-      },
-      phase: 'Phase 1 — Ramp',
-      last_session: {
-        date: new Date().toISOString().split('T')[0],
-        summary: 'No session data'
-      }
-    }
-
-    // Read and parse sends.json
-    if (fs.existsSync(sendsPath)) {
-      try {
-        const sendsContent = fs.readFileSync(sendsPath, 'utf-8')
-        const sendsData = JSON.parse(sendsContent)
-        const sends = sendsData.sends || []
-
-        metrics.tot_sent = sends.length
-
-        // Count replies and positive replies, track by stage
-        let replies = 0
-        let positiveReplies = 0
-        for (const send of sends) {
-          if (send.reply) {
-            replies++
-            // Consider replies with replyContent as positive (simple heuristic)
-            if (send.replyContent && send.replyContent.length > 0) {
-              positiveReplies++
-            }
-          }
-          // Count by status
-          if (send.status === 'pending') {
-            metrics.seq_stages.pending++
-          } else if (send.status === 'sent' || send.status === undefined) {
-            metrics.seq_stages.sent++
-          } else if (send.status === 'followed-up' || send.status === 'followup') {
-            metrics.seq_stages.followup++
-          } else if (send.status === 'closed') {
-            metrics.seq_stages.closed++
-          }
-
-          // Count by track
-          const track = send.track ? send.track.replace('-', '_') : 'product_maker'
-          if (track in metrics.by_track) {
-            metrics.by_track[track]++
-          }
-        }
-
-        metrics.tot_replies = replies
-        metrics.pos_replies = positiveReplies
-        if (metrics.tot_sent > 0) {
-          metrics.reply_rate = Math.round((replies / metrics.tot_sent) * 1000) / 1000
-          metrics.pos_reply_rate = Math.round((positiveReplies / metrics.tot_sent) * 1000) / 1000
-        }
-      } catch (err) {
-        console.error('Error parsing sends.json:', err.message)
-      }
-    }
-
-    // Read and parse opt-outs.json
-    if (fs.existsSync(optOutsPath)) {
-      try {
-        const optOutsContent = fs.readFileSync(optOutsPath, 'utf-8')
-        const optOutsData = JSON.parse(optOutsContent)
-        const optOuts = optOutsData.optOuts || []
-
-        metrics.opt_outs = optOuts.length
-        if (metrics.tot_sent > 0) {
-          metrics.opt_out_rate = Math.round((optOuts.length / metrics.tot_sent) * 1000) / 1000
-        }
-      } catch (err) {
-        console.error('Error parsing opt-outs.json:', err.message)
-      }
-    }
-
-    // Parse SDR_STATE.md if it exists
-    if (fs.existsSync(sdrStatePath)) {
-      try {
-        const stateContent = fs.readFileSync(sdrStatePath, 'utf-8')
-        const stateInfo = parseSdrState(stateContent)
-        metrics.phase = stateInfo.phase
-        metrics.last_session = stateInfo.lastSession
-      } catch (err) {
-        console.error('Error parsing SDR_STATE.md:', err.message)
-      }
-    }
-
-    res.json(toToonFormat(metrics))
+    if (!fs.existsSync(filePath)) return null
+    return JSON.parse(fs.readFileSync(filePath, 'utf-8'))
   } catch (err) {
-    console.error('Error in /sdr/metrics:', err.message)
-    // Return best-effort response with error
-    res.json(toToonFormat({
-      ts: new Date().toISOString(),
-      tot_sent: 0,
-      tot_replies: 0,
-      reply_rate: 0,
-      pos_replies: 0,
-      pos_reply_rate: 0,
-      opt_outs: 0,
-      opt_out_rate: 0,
-      by_track: { ai_enablement: 0, product_maker: 0, pace_car: 0 },
-      seq_stages: { pending: 0, sent: 0, followup: 0, closed: 0 },
-      phase: 'Phase 1 — Ramp',
-      last_session: { date: new Date().toISOString().split('T')[0], summary: 'Error reading state' }
-    }))
+    console.error(`Error reading ${path.basename(filePath)}:`, err.message)
+    return null
   }
+}
+
+// Helper: zero-filled by_st object for SDR pipeline
+function emptySdrByStatus() {
+  return {
+    new: 0,
+    email_discovered: 0,
+    draft_generated: 0,
+    awaiting_approval: 0,
+    email_sent: 0,
+    replied: 0,
+    closed_positive: 0,
+    closed_negative: 0
+  }
+}
+
+// API: GET /api/sdr/metrics — SDR pipeline health snapshot
+app.get('/sdr/metrics', (req, res) => {
+  const SDR_BASE = path.join(REPO_ROOT, 'workspaces/work/projects/SDR')
+  const prospectsPath = path.join(SDR_BASE, 'prospects.json')
+  const sendsPath    = path.join(SDR_BASE, 'outreach/sends.json')
+  const repliesPath  = path.join(SDR_BASE, 'outreach/replies.json')
+
+  const metrics = {
+    tot: 0,
+    by_st: emptySdrByStatus(),
+    by_tr: { 'ai-enablement': 0, 'product-maker': 0, 'pace-car': 0 },
+    sd7: 0,
+    rpl: 0,
+    pos: 0,
+    op: 0,
+    bn: 0,
+    lu: new Date().toISOString()
+  }
+
+  // Count prospects by status and track
+  const prospectsData = readJsonFile(prospectsPath)
+  if (prospectsData) {
+    const prospects = prospectsData.prospects || []
+    metrics.tot = prospects.length
+    for (const p of prospects) {
+      const st = p.st || p.status || 'new'
+      if (st in metrics.by_st) metrics.by_st[st]++
+      const tr = p.tr || p.track || 'product-maker'
+      if (tr in metrics.by_tr) metrics.by_tr[tr]++
+    }
+  }
+
+  // Count sends in last 7 days
+  const sendsData = readJsonFile(sendsPath)
+  if (sendsData) {
+    const sends = sendsData.sends || []
+    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000
+    for (const s of sends) {
+      const ts = s.sd || s.sent_at || s.ts
+      if (ts && new Date(ts).getTime() >= cutoff) metrics.sd7++
+    }
+  }
+
+  // Count replies by classification
+  const repliesData = readJsonFile(repliesPath)
+  if (repliesData) {
+    const replies = repliesData.replies || []
+    metrics.rpl = replies.length
+    for (const r of replies) {
+      const cls = r.cls || r.classification || ''
+      if (cls === 'positive') metrics.pos++
+      else if (cls === 'opt_out') metrics.op++
+      else if (cls === 'bounce') metrics.bn++
+    }
+  }
+
+  res.json(metrics)
 })
 
-// API: GET /api/sdr/pipeline — SDR pipeline and prospect metrics
+// API: GET /api/sdr/pipeline — SDR pipeline visualization
 app.get('/sdr/pipeline', (req, res) => {
-  try {
-    const prospectsPath = path.join(REPO_ROOT, 'workspaces/work/projects/SDR/prospects.json')
-    const optOutsPath = path.join(REPO_ROOT, 'workspaces/work/projects/SDR/outreach/opt-outs.json')
+  const prospectsPath = path.join(REPO_ROOT, 'workspaces/work/projects/SDR/prospects.json')
 
-    // Initialize metrics with safe defaults
-    const pipeline = {
-      ts: new Date().toISOString(),
-      total: 0,
-      by_status: {
-        pending: 0,
-        sent: 0,
-        replied: 0,
-        closed: 0,
-        opted_out: 0,
-        bounced: 0
-      },
-      by_track: {
-        ai_enablement: 0,
-        product_maker: 0,
-        pace_car: 0
-      },
-      by_tz: {},
-      valid_email_pct: 0,
-      ready_to_send: 0
+  const STAGE_DEFS = [
+    { st: 'new',               label: 'New' },
+    { st: 'email_discovered',  label: 'Email Found' },
+    { st: 'draft_generated',   label: 'Draft Ready' },
+    { st: 'awaiting_approval', label: 'Awaiting Approval' },
+    { st: 'email_sent',        label: 'Sent' },
+    { st: 'replied',           label: 'Replied' },
+    { st: 'closed_positive',   label: 'Won' },
+    { st: 'closed_negative',   label: 'Closed' }
+  ]
+  const CLOSED = new Set(['closed_positive', 'closed_negative'])
+
+  const counts = {}
+  for (const s of STAGE_DEFS) counts[s.st] = 0
+
+  let recent = []
+
+  const prospectsData = readJsonFile(prospectsPath)
+  if (prospectsData) {
+    const prospects = prospectsData.prospects || []
+    for (const p of prospects) {
+      const st = p.st || p.status || 'new'
+      if (st in counts) counts[st]++
+      if (!CLOSED.has(st)) recent.push(p)
     }
-
-    // Build opt-outs set for quick lookup
-    const optOutEmails = new Set()
-    if (fs.existsSync(optOutsPath)) {
-      try {
-        const optOutsContent = fs.readFileSync(optOutsPath, 'utf-8')
-        const optOutsData = JSON.parse(optOutsContent)
-        const optOuts = optOutsData.optOuts || []
-        for (const optOut of optOuts) {
-          if (optOut.email) {
-            optOutEmails.add(optOut.email.toLowerCase())
-          }
-        }
-      } catch (err) {
-        console.error('Error parsing opt-outs.json:', err.message)
-      }
-    }
-
-    // Read and parse prospects.json
-    if (fs.existsSync(prospectsPath)) {
-      try {
-        const prospectsContent = fs.readFileSync(prospectsPath, 'utf-8')
-        const prospectsData = JSON.parse(prospectsContent)
-        const prospects = prospectsData.prospects || []
-
-        pipeline.total = prospects.length
-
-        let validEmails = 0
-        for (const prospect of prospects) {
-          // Count by status (use "st" for status in TOON format)
-          const status = prospect.st || prospect.status || 'pending'
-          if (status in pipeline.by_status) {
-            pipeline.by_status[status]++
-          }
-
-          // Count by track (use "tr" for track in TOON format)
-          const track = prospect.tr || prospect.track || 'product-maker'
-          const normalizedTrack = track.replace('-', '_')
-          if (normalizedTrack in pipeline.by_track) {
-            pipeline.by_track[normalizedTrack]++
-          }
-
-          // Count by timezone (use "tz" for timezone)
-          const tz = prospect.tz || prospect.timezone || 'Unknown'
-          if (!pipeline.by_tz[tz]) {
-            pipeline.by_tz[tz] = 0
-          }
-          pipeline.by_tz[tz]++
-
-          // Count valid emails
-          const email = prospect.em || prospect.email
-          if (isValidEmail(email)) {
-            validEmails++
-          }
-
-          // Count ready-to-send: pending status + valid email + not in opt-outs
-          const email_lower = email ? email.toLowerCase() : ''
-          if (
-            status === 'pending' &&
-            isValidEmail(email) &&
-            !optOutEmails.has(email_lower)
-          ) {
-            pipeline.ready_to_send++
-          }
-        }
-
-        if (pipeline.total > 0) {
-          pipeline.valid_email_pct = Math.round((validEmails / pipeline.total) * 1000) / 10
-        }
-      } catch (err) {
-        console.error('Error parsing prospects.json:', err.message)
-      }
-    }
-
-    res.json(toToonFormat(pipeline))
-  } catch (err) {
-    console.error('Error in /sdr/pipeline:', err.message)
-    // Return best-effort response with error
-    res.json(toToonFormat({
-      ts: new Date().toISOString(),
-      total: 0,
-      by_status: { pending: 0, sent: 0, replied: 0, closed: 0, opted_out: 0, bounced: 0 },
-      by_track: { ai_enablement: 0, product_maker: 0, pace_car: 0 },
-      by_tz: {},
-      valid_email_pct: 0,
-      ready_to_send: 0
-    }))
+    // Sort by lc (lastContact) descending, take top 5
+    recent = recent
+      .filter(p => p.lc || p.lastContact)
+      .sort((a, b) => {
+        const ta = new Date(a.lc || a.lastContact).getTime()
+        const tb = new Date(b.lc || b.lastContact).getTime()
+        return tb - ta
+      })
+      .slice(0, 5)
   }
+
+  res.json({
+    stages: STAGE_DEFS.map(s => ({ st: s.st, label: s.label, count: counts[s.st] })),
+    recent,
+    lu: new Date().toISOString()
+  })
 })
 
 // Health check
