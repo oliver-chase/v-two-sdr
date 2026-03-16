@@ -110,12 +110,14 @@ async function stepEnrich() {
 async function stepDraft() {
   console.log('\n[3/5] Generating email drafts...');
   try {
-    const { generateDrafts } = require('./draft-emails');
-    const result = await generateDrafts({
-      prospectsPath: path.join(SDR_ROOT, 'prospects.json'),
-      optOutsPath: path.join(SDR_ROOT, 'outreach/opt-outs.json'),
-      templatesPath: path.join(SDR_ROOT, 'outreach/templates.md'),
-      draftPlanPath: path.join(SDR_ROOT, 'outreach/draft-plan.json')
+    const { generateDraftsWithAI } = require('./draft-emails');
+    const result = await generateDraftsWithAI({
+      paths: {
+        prospectsPath: path.join(SDR_ROOT, 'prospects.json'),
+        optOutsPath: path.join(SDR_ROOT, 'outreach/opt-outs.json'),
+        templatesPath: path.join(SDR_ROOT, 'outreach/templates.md'),
+        draftPlanPath: path.join(SDR_ROOT, 'outreach/draft-plan.json')
+      }
     });
 
     console.log(`  ✓ ${result.drafted} drafts generated (${result.skipped_optout} opt-outs skipped, ${result.skipped_no_email} no email)`);
@@ -133,8 +135,8 @@ async function stepDraft() {
 async function stepInbox() {
   console.log('\n[4/5] Checking inbox for replies...');
   try {
-    if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
-      console.log('  ⚠ Gmail credentials not configured — skipping inbox check');
+    if (!process.env.OUTLOOK_USER || !process.env.OUTLOOK_PASSWORD) {
+      console.log('  ⚠ Outlook credentials not configured — skipping inbox check');
       return { skipped: true, reason: 'credentials_not_configured' };
     }
 

@@ -86,13 +86,14 @@ class Mailer {
     if (this.transporter) return;
 
     if (!this.config.smtp.user || !this.config.smtp.pass) {
-      throw new Error('GMAIL_USER and GMAIL_APP_PASSWORD must be set in .env');
+      throw new Error('OUTLOOK_USER and OUTLOOK_PASSWORD must be set in .env');
     }
 
     this.transporter = nodemailer.createTransport({
       host: this.config.smtp.host,
       port: this.config.smtp.port,
       secure: this.config.smtp.secure,
+      requireTLS: this.config.smtp.requireTLS,
       auth: {
         user: this.config.smtp.user,
         pass: this.config.smtp.pass

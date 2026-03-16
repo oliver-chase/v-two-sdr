@@ -9,16 +9,17 @@ require('dotenv').config();
 
 module.exports = {
   smtp: {
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD
+    host: 'smtp.office365.com',
+    port: 587,
+    secure: false,       // STARTTLS (not SSL-from-the-start)
+    requireTLS: true,
+    user: process.env.OUTLOOK_USER,
+    pass: process.env.OUTLOOK_PASSWORD
   },
 
   sender: {
     name: process.env.SENDER_NAME || 'Oliver Chase',
-    email: process.env.GMAIL_USER,
+    email: process.env.OUTLOOK_USER,
     bcc: process.env.BCC_EMAIL
   },
 

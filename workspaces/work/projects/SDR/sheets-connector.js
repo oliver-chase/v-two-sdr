@@ -41,7 +41,7 @@ class GoogleSheetsConnector {
     this.sheetName = config.google_sheets.sheet_name;
     this.templatesSheetName = config.google_sheets.templates_sheet || 'Templates';
     this.optOutsSheetName = config.google_sheets.optouts_sheet || 'OptOuts';
-    this.credentialsPath = config.credentials_path || config.google_sheets.credentials_path;
+    this.apiKey = config.google_sheets.api_key || process.env.GOOGLE_API_KEY || '';
 
     // Initialize API client
     this.doc = null;
@@ -55,20 +55,20 @@ class GoogleSheetsConnector {
   }
 
   /**
-   * Authenticate with Google Sheets API using service account
+   * Authenticate with Google Sheets API using API key (read-only).
+   * The sheet must be shared: "Anyone with the link can view".
+   *
+   * @param {string} [apiKey] - Override the key from config/env
    */
-  async authenticate(credentialsPath) {
-    const credsPath = credentialsPath || this.credentialsPath;
+  async authenticate(apiKey) {
+    const key = apiKey || this.apiKey;
 
-    if (!fs.existsSync(credsPath)) {
-      throw new Error(`Credentials file not found: ${credsPath}`);
+    if (!key) {
+      throw new Error('Google Sheets authentication required: GOOGLE_API_KEY must be set');
     }
 
     try {
-      const credentials = JSON.parse(fs.readFileSync(credsPath, 'utf8'));
-
-      this.doc = new GoogleSpreadsheet(this.sheetId);
-      await this.doc.useServiceAccountAuth(credentials);
+      this.doc = new GoogleSpreadsheet(this.sheetId, { apiKey: key });
       await this.doc.loadInfo();
 
       this.authenticated = true;

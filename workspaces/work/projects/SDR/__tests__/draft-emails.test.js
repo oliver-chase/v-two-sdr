@@ -8,7 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const { loadTemplates, selectTemplate, mergeDraft, generateDrafts } = require('../scripts/draft-emails');
+const { loadTemplates, selectTemplate, mergeDraft, generateDrafts, classifyTitle, classifyFunding, getGroupKey, groupProspects } = require('../scripts/draft-emails');
 
 // ============================================================================
 // TEMP FILE PATHS
@@ -400,5 +400,266 @@ describe('generateDrafts', () => {
   test('total reflects all prospects loaded before filtering', () => {
     writeFixtures(PROSPECTS_JSON, OPT_OUTS);
     expect(generateDrafts(config).total).toBe(3);
+  });
+});
+
+// ============================================================================
+// classifyTitle
+// ============================================================================
+
+describe('classifyTitle', () => {
+  test('CEO returns executive', () => {
+    expect(classifyTitle('CEO')).toBe('executive');
+  });
+
+  test('CTO returns executive', () => {
+    expect(classifyTitle('CTO')).toBe('executive');
+  });
+
+  test('Founder returns executive', () => {
+    expect(classifyTitle('Founder')).toBe('executive');
+  });
+
+  test('Co-Founder returns executive', () => {
+    expect(classifyTitle('Co-Founder')).toBe('executive');
+  });
+
+  test('President returns executive', () => {
+    expect(classifyTitle('President')).toBe('executive');
+  });
+
+  test('Managing Director returns executive', () => {
+    expect(classifyTitle('Managing Director')).toBe('executive');
+  });
+
+  test('VP of Engineering returns vp-director', () => {
+    expect(classifyTitle('VP of Engineering')).toBe('vp-director');
+  });
+
+  test('VP of Engineering returns vp-director (short form)', () => {
+    expect(classifyTitle('VP of Sales')).toBe('vp-director');
+  });
+
+  test('Director of Product returns vp-director', () => {
+    expect(classifyTitle('Director of Product')).toBe('vp-director');
+  });
+
+  test('Head of Design returns vp-director', () => {
+    expect(classifyTitle('Head of Design')).toBe('vp-director');
+  });
+
+  test('Engineering Manager returns manager', () => {
+    expect(classifyTitle('Engineering Manager')).toBe('manager');
+  });
+
+  test('Tech Lead returns manager', () => {
+    expect(classifyTitle('Tech Lead')).toBe('manager');
+  });
+
+  test('Principal Engineer returns manager', () => {
+    expect(classifyTitle('Principal Engineer')).toBe('manager');
+  });
+
+  test('Senior Software Engineer returns manager', () => {
+    expect(classifyTitle('Senior Software Engineer')).toBe('manager');
+  });
+
+  test('Staff Engineer returns manager', () => {
+    expect(classifyTitle('Staff Engineer')).toBe('manager');
+  });
+
+  test('Software Engineer returns ic', () => {
+    expect(classifyTitle('Software Engineer')).toBe('ic');
+  });
+
+  test('empty string returns ic', () => {
+    expect(classifyTitle('')).toBe('ic');
+  });
+
+  test('null/undefined returns ic', () => {
+    expect(classifyTitle(null)).toBe('ic');
+    expect(classifyTitle(undefined)).toBe('ic');
+  });
+
+  test('case insensitive matching', () => {
+    expect(classifyTitle('ceo')).toBe('executive');
+    expect(classifyTitle('vp engineering')).toBe('vp-director');
+  });
+});
+
+// ============================================================================
+// classifyFunding
+// ============================================================================
+
+describe('classifyFunding', () => {
+  test('empty string returns bootstrap', () => {
+    expect(classifyFunding('')).toBe('bootstrap');
+  });
+
+  test('null returns bootstrap', () => {
+    expect(classifyFunding(null)).toBe('bootstrap');
+  });
+
+  test('undefined returns bootstrap', () => {
+    expect(classifyFunding(undefined)).toBe('bootstrap');
+  });
+
+  test('Bootstrapped returns bootstrap', () => {
+    expect(classifyFunding('Bootstrapped')).toBe('bootstrap');
+  });
+
+  test('Self-funded returns bootstrap', () => {
+    expect(classifyFunding('Self-funded')).toBe('bootstrap');
+  });
+
+  test('Unfunded returns bootstrap', () => {
+    expect(classifyFunding('Unfunded')).toBe('bootstrap');
+  });
+
+  test('Pre-Seed returns pre-seed', () => {
+    expect(classifyFunding('Pre-Seed')).toBe('pre-seed');
+  });
+
+  test('pre seed (space) returns pre-seed', () => {
+    expect(classifyFunding('pre seed')).toBe('pre-seed');
+  });
+
+  test('Seed returns seed', () => {
+    expect(classifyFunding('Seed')).toBe('seed');
+  });
+
+  test('Series A returns series-a', () => {
+    expect(classifyFunding('Series A')).toBe('series-a');
+  });
+
+  test('Series B returns growth', () => {
+    expect(classifyFunding('Series B')).toBe('growth');
+  });
+
+  test('Series C returns growth', () => {
+    expect(classifyFunding('Series C')).toBe('growth');
+  });
+
+  test('Growth stage returns growth', () => {
+    expect(classifyFunding('Growth')).toBe('growth');
+  });
+
+  test('Public returns public', () => {
+    expect(classifyFunding('Public')).toBe('public');
+  });
+
+  test('NASDAQ returns public', () => {
+    expect(classifyFunding('NASDAQ')).toBe('public');
+  });
+
+  test('NYSE listed returns public', () => {
+    expect(classifyFunding('NYSE')).toBe('public');
+  });
+
+  test('IPO returns public', () => {
+    expect(classifyFunding('IPO')).toBe('public');
+  });
+
+  test('Unknown stage returns unknown', () => {
+    expect(classifyFunding('Angel Round')).toBe('unknown');
+  });
+});
+
+// ============================================================================
+// getGroupKey
+// ============================================================================
+
+describe('getGroupKey', () => {
+  test('returns pipe-separated string of titleLevel|industry|funding', () => {
+    const prospect = { ti: 'CEO', ind: 'SaaS', fnd: 'Series A' };
+    expect(getGroupKey(prospect)).toBe('executive|saas|series-a');
+  });
+
+  test('defaults missing industry to tech', () => {
+    const prospect = { ti: 'Software Engineer', fnd: 'Seed' };
+    expect(getGroupKey(prospect)).toBe('ic|tech|seed');
+  });
+
+  test('defaults missing funding to bootstrap', () => {
+    const prospect = { ti: 'VP Engineering', ind: 'Fintech' };
+    expect(getGroupKey(prospect)).toBe('vp-director|fintech|bootstrap');
+  });
+
+  test('sanitizes industry to lowercase with hyphens', () => {
+    const prospect = { ti: 'Director of Product', ind: 'Health Care & Life Sciences', fnd: 'Seed' };
+    const key = getGroupKey(prospect);
+    // industry sanitized: no special chars, lowercase, hyphenated, max 20 chars
+    expect(key.startsWith('vp-director|')).toBe(true);
+    expect(key).toMatch(/^[a-z-]+\|[a-z0-9-]+\|[a-z-]+$/);
+  });
+
+  test('truncates long industry names to 20 chars', () => {
+    const prospect = { ti: 'CEO', ind: 'Very Long Industry Name Here', fnd: 'Seed' };
+    const [, industry] = getGroupKey(prospect).split('|');
+    expect(industry.length).toBeLessThanOrEqual(20);
+  });
+
+  test('handles null/undefined fields without throwing', () => {
+    expect(() => getGroupKey({})).not.toThrow();
+    expect(() => getGroupKey({ ti: null, ind: null, fnd: null })).not.toThrow();
+  });
+});
+
+// ============================================================================
+// groupProspects
+// ============================================================================
+
+describe('groupProspects', () => {
+  test('returns a Map', () => {
+    expect(groupProspects([])).toBeInstanceOf(Map);
+  });
+
+  test('empty array returns empty Map', () => {
+    expect(groupProspects([]).size).toBe(0);
+  });
+
+  test('prospects with same key are grouped together', () => {
+    const p1 = { ti: 'CEO', ind: 'SaaS', fnd: 'Series A' };
+    const p2 = { ti: 'Founder', ind: 'SaaS', fnd: 'Series A' };
+    const groups = groupProspects([p1, p2]);
+    // Both should be executive|saas|series-a
+    expect(groups.size).toBe(1);
+    const [members] = groups.values();
+    expect(members).toHaveLength(2);
+  });
+
+  test('prospects with different keys are in separate groups', () => {
+    const p1 = { ti: 'CEO', ind: 'SaaS', fnd: 'Seed' };
+    const p2 = { ti: 'Software Engineer', ind: 'Fintech', fnd: 'Series B' };
+    const groups = groupProspects([p1, p2]);
+    expect(groups.size).toBe(2);
+  });
+
+  test('each group value is an array of prospects', () => {
+    const prospects = [
+      { ti: 'CEO', ind: 'SaaS', fnd: 'Seed' },
+      { ti: 'VP Engineering', ind: 'Fintech', fnd: 'Series A' }
+    ];
+    const groups = groupProspects(prospects);
+    for (const members of groups.values()) {
+      expect(Array.isArray(members)).toBe(true);
+      expect(members.length).toBeGreaterThan(0);
+    }
+  });
+
+  test('single prospect produces one group with one member', () => {
+    const p = { ti: 'CTO', ind: 'AI', fnd: 'Pre-Seed' };
+    const groups = groupProspects([p]);
+    expect(groups.size).toBe(1);
+    const [members] = groups.values();
+    expect(members).toHaveLength(1);
+    expect(members[0]).toBe(p);
+  });
+
+  test('group keys match getGroupKey output', () => {
+    const p = { ti: 'Director of Engineering', ind: 'Cloud', fnd: 'Series C' };
+    const groups = groupProspects([p]);
+    const expectedKey = getGroupKey(p);
+    expect(groups.has(expectedKey)).toBe(true);
   });
 });

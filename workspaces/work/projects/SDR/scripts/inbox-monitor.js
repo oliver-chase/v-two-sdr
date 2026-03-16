@@ -19,7 +19,7 @@ const { classifyReply } = require('./reply-classifier');
 // CONSTANTS
 // ============================================================================
 
-const IMAP_HOST = 'imap.gmail.com';
+const IMAP_HOST = 'outlook.office365.com';
 const IMAP_PORT = 993;
 const LOOKBACK_DAYS = 30;
 
@@ -29,15 +29,15 @@ const LOOKBACK_DAYS = 30;
 
 /**
  * Build IMAP config from environment variables.
- * GMAIL_USER and GMAIL_APP_PASSWORD must be set.
+ * OUTLOOK_USER and OUTLOOK_PASSWORD must be set.
  *
- * @returns {{ gmail: { user, pass }, imap: { host, port } }}
+ * @returns {{ outlook: { user, pass }, imap: { host, port } }}
  */
 function buildConfig() {
   return {
-    gmail: {
-      user: process.env.GMAIL_USER || '',
-      pass: process.env.GMAIL_APP_PASSWORD || ''
+    outlook: {
+      user: process.env.OUTLOOK_USER || '',
+      pass: process.env.OUTLOOK_PASSWORD || ''
     },
     imap: {
       host: IMAP_HOST,
@@ -158,17 +158,17 @@ function _daysAgo(n) {
 // ============================================================================
 
 /**
- * Connect to Gmail IMAP, search for replies, classify them, and log results.
+ * Connect to Outlook IMAP, search for replies, classify them, and log results.
  *
  * @param {Object} config
- * @param {Object} config.gmail         - { user, pass }
- * @param {Object} [config.imap]        - Override imap host/port
- * @param {Object} [config.paths]       - { sendsLog, repliesLog }
+ * @param {Object} config.outlook        - { user, pass }
+ * @param {Object} [config.imap]         - Override imap host/port
+ * @param {Object} [config.paths]        - { sendsLog, repliesLog }
  * @returns {Promise<{ checked: number, newReplies: number, classified: Array }>}
  */
 async function checkInbox(config) {
-  const gmailUser = config.gmail?.user || process.env.GMAIL_USER || '';
-  const gmailPass = config.gmail?.pass || process.env.GMAIL_APP_PASSWORD || '';
+  const outlookUser = config.outlook?.user || process.env.OUTLOOK_USER || '';
+  const outlookPass = config.outlook?.pass || process.env.OUTLOOK_PASSWORD || '';
 
   const imapHost = config.imap?.host || IMAP_HOST;
   const imapPort = config.imap?.port || IMAP_PORT;
@@ -187,8 +187,8 @@ async function checkInbox(config) {
     port: imapPort,
     secure: true,
     auth: {
-      user: gmailUser,
-      pass: gmailPass
+      user: outlookUser,
+      pass: outlookPass
     },
     logger: false
   });

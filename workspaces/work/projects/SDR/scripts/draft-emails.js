@@ -86,7 +86,8 @@ function selectTemplate(templates, prospect) {
  * @returns {{ subject: string, body: string }}
  */
 function mergeDraft(template, prospect) {
-  const fn = prospect.fn || '';
+  // fn is set directly, or derived from nm (full name) by parseSheetRow
+  const fn = prospect.fn || (prospect.nm ? prospect.nm.split(' ')[0] : '') || '';
   const co = prospect.co || '';
 
   const subject = template.subject
@@ -210,7 +211,248 @@ function generateDrafts(config) {
 }
 
 // ============================================================================
+// AI-POWERED TEMPLATE GENERATION (Production path — requires ANTHROPIC_API_KEY)
+// ============================================================================
+
+const axios = require('axios');
+
+/**
+ * Classify title into a broad seniority bucket for grouping
+ */
+function classifyTitle(title) {
+  const t = (title || '').toLowerCase();
+  if (/\b(ceo|cto|cpo|cfo|coo|founder|co-founder|president|owner|managing partner|managing director)\b/.test(t)) return 'executive';
+  if (/\b(vp|vice president|director|head of)\b/.test(t)) return 'vp-director';
+  if (/\b(manager|lead|principal|senior|staff)\b/.test(t)) return 'manager';
+  return 'ic';
+}
+
+/**
+ * Classify funding stage into a bucket for grouping
+ */
+function classifyFunding(funding) {
+  const f = (funding || '').toLowerCase();
+  if (!f || /bootstrap|self.fund|unfunded|boot/.test(f)) return 'bootstrap';
+  if (/pre-seed|pre seed/.test(f)) return 'pre-seed';
+  if (/\bseed\b/.test(f)) return 'seed';
+  if (/series a/i.test(f)) return 'series-a';
+  if (/series [b-z]|growth/i.test(f)) return 'growth';
+  if (/public|nasdaq|nyse|ipo/i.test(f)) return 'public';
+  return 'unknown';
+}
+
+/**
+ * Derive a group key from a prospect's segmentation fields.
+ * Prospects with the same key get the same AI-generated template.
+ */
+function getGroupKey(prospect) {
+  const titleLevel = classifyTitle(prospect.ti);
+  const industry = (prospect.ind || 'tech').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 20);
+  const funding = classifyFunding(prospect.fnd);
+  return `${titleLevel}|${industry}|${funding}`;
+}
+
+/**
+ * Group prospects by similarity so one template can serve multiple leads
+ */
+function groupProspects(prospects) {
+  const groups = new Map();
+  for (const p of prospects) {
+    const key = getGroupKey(p);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(p);
+  }
+  return groups;
+}
+
+/**
+ * Call Claude Haiku to generate a soft-custom email template for a prospect group.
+ * Falls back to null (caller uses static template selection) if API call fails.
+ *
+ * @param {string} groupKey     - Derived group key (titleLevel|industry|funding)
+ * @param {Object[]} members    - Representative prospects for this group
+ * @param {Object}  templates   - Existing templates (A-E) for tone reference
+ * @param {string}  apiKey      - Anthropic API key
+ * @returns {Promise<{subject: string, body: string}|null>}
+ */
+/* istanbul ignore next */
+async function generateGroupTemplate(groupKey, members, templates, apiKey) {
+  const sample = members[0];
+  const [titleLevel, industry, funding] = groupKey.split('|');
+
+  const toneExamples = ['A', 'B', 'C']
+    .filter(k => templates[k])
+    .map(k => `Template ${k}:\nSubject: ${templates[k].subject}\n${templates[k].body}`)
+    .join('\n\n---\n\n');
+
+  const prompt = `You write cold outreach emails for Oliver Chase at V.Two (vtwo.co).
+
+V.Two builds custom digital products end-to-end — strategy, engineering, delivery. We work with founders, product leaders, and engineering leaders who need to ship serious software without fragmenting across vendors.
+
+TARGET GROUP:
+- Seniority: ${titleLevel} (e.g. "${sample.ti}")
+- Industry: ${industry}
+- Funding stage: ${funding}
+- Company size: ${sample.sz || 'unknown'}
+- Signal: ${sample.sig || 'not specified'}
+
+Write one short, direct cold email (not salesy, no buzzwords) that would resonate with this person.
+
+TONE EXAMPLES — match this voice (brief, confident, specific):
+${toneExamples}
+
+REQUIREMENTS:
+- Subject line: short and specific — no "I hope this finds you well" energy
+- Body: 3-4 sentences max. One clear ask at the end.
+- Use [Name] for first name and [Company] for company name
+- End with: [Oliver]\\nV.Two | vtwo.co
+
+Respond in exactly this format (nothing else):
+SUBJECT: <subject line>
+BODY:
+<email body>`;
+
+  try {
+    const response = await axios.post(
+      'https://api.anthropic.com/v1/messages',
+      {
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 400,
+        messages: [{ role: 'user', content: prompt }]
+      },
+      {
+        headers: {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json'
+        },
+        timeout: 15000
+      }
+    );
+
+    const text = response.data.content[0].text;
+    const subjectMatch = text.match(/SUBJECT:\s*(.+)/);
+    const bodyMatch = text.match(/BODY:\s*([\s\S]+)/);
+
+    if (!subjectMatch || !bodyMatch) return null;
+
+    return {
+      subject: subjectMatch[1].trim(),
+      body: bodyMatch[1].trim()
+    };
+  } catch (err) {
+    console.warn(`[draft-emails] AI template generation failed for group "${groupKey}": ${err.message}`);
+    return null;
+  }
+}
+
+/**
+ * AI-powered version of generateDrafts.
+ * Groups prospects by similarity, generates a soft-custom template per group
+ * via Claude Haiku, then merges and writes draft-plan.json.
+ *
+ * Falls back to static template selection if ANTHROPIC_API_KEY is not set
+ * or if an API call fails.
+ *
+ * @param {Object} config - Same config shape as generateDrafts
+ * @returns {Promise<{ total, drafted, skipped_optout, skipped_no_email, errors }>}
+ */
+/* istanbul ignore next */
+async function generateDraftsWithAI(config) {
+  const { templatesPath, prospectsPath, optOutsPath, draftPlanPath } = config.paths;
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+
+  const summary = { total: 0, drafted: 0, skipped_optout: 0, skipped_no_email: 0, errors: 0 };
+
+  const templates = loadTemplates(templatesPath);
+  const prospectsData = JSON.parse(fs.readFileSync(prospectsPath, 'utf8'));
+  const allProspects = prospectsData.prospects || [];
+  summary.total = allProspects.length;
+
+  const optOutsData = JSON.parse(fs.readFileSync(optOutsPath, 'utf8'));
+  const optOutEmails = new Set(
+    (optOutsData.opt_outs || []).map(function(o) { return (o.em || '').toLowerCase(); })
+  );
+
+  // Filter eligible prospects
+  const ELIGIBLE_STATUSES = new Set(['new', 'email_discovered']);
+  const eligible = [];
+  for (const p of allProspects) {
+    if (!ELIGIBLE_STATUSES.has(p.st)) continue;
+    if (!p.em) { summary.skipped_no_email++; continue; }
+    if (optOutEmails.has(p.em.toLowerCase())) { summary.skipped_optout++; continue; }
+    eligible.push(p);
+  }
+
+  // Group and generate templates
+  const groups = groupProspects(eligible);
+  const templateCache = new Map();
+
+  if (apiKey) {
+    console.log(`[draft-emails] Generating AI templates for ${groups.size} prospect group(s)...`);
+    for (const [key, members] of groups) {
+      const generated = await generateGroupTemplate(key, members, templates, apiKey);
+      templateCache.set(key, generated || selectTemplate(templates, members[0]));
+    }
+  }
+
+  // Build drafts
+  const drafts = [];
+  for (const prospect of eligible) {
+    try {
+      const key = getGroupKey(prospect);
+      const template = templateCache.has(key)
+        ? templateCache.get(key)
+        : selectTemplate(templates, prospect);
+
+      const merged = mergeDraft(template, prospect);
+
+      drafts.push({
+        id: prospect.id,
+        em: prospect.em,
+        fn: prospect.fn || (prospect.nm ? prospect.nm.split(' ')[0] : ''),
+        nm: prospect.nm || '',
+        co: prospect.co,
+        ti: prospect.ti,
+        ind: prospect.ind || '',
+        sig: prospect.sig || '',
+        grp: getGroupKey(prospect),
+        tpl: apiKey ? 'AI' : 'static',
+        subject: merged.subject,
+        body: merged.body,
+        ts: new Date().toISOString(),
+        status: 'draft'
+      });
+
+      summary.drafted++;
+    } catch (err) {
+      summary.errors++;
+      console.error('Error drafting prospect ' + (prospect.id || '?') + ': ' + err.message);
+    }
+  }
+
+  // Write output
+  const draftDir = path.dirname(draftPlanPath);
+  if (!fs.existsSync(draftDir)) fs.mkdirSync(draftDir, { recursive: true });
+  fs.writeFileSync(draftPlanPath, JSON.stringify(drafts, null, 2));
+
+  console.log(`[draft-emails] ${summary.drafted} drafts written (${apiKey ? 'AI-generated' : 'static templates'})`);
+  return summary;
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
-module.exports = { loadTemplates, selectTemplate, mergeDraft, generateDrafts };
+module.exports = {
+  loadTemplates,
+  selectTemplate,
+  mergeDraft,
+  generateDrafts,
+  generateDraftsWithAI,
+  // Exposed for testing
+  classifyTitle,
+  classifyFunding,
+  getGroupKey,
+  groupProspects
+};

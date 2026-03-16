@@ -7,7 +7,7 @@ const path = require('path');
 
 // Mock all external scripts so we can test orchestration logic in isolation
 jest.mock('../scripts/draft-emails', () => ({
-  generateDrafts: jest.fn().mockResolvedValue({ drafted: 3, skipped_optout: 1, skipped_no_email: 0, total: 4, errors: 0 })
+  generateDraftsWithAI: jest.fn().mockResolvedValue({ drafted: 3, skipped_optout: 1, skipped_no_email: 0, total: 4, errors: 0 })
 }), { virtual: true });
 
 jest.mock('../scripts/inbox-monitor', () => ({
@@ -35,7 +35,7 @@ const SDR_ROOT = path.join(__dirname, '..');
 // ============================================================================
 
 describe('stepDraft', () => {
-  test('calls generateDrafts and returns result', async () => {
+  test('calls generateDraftsWithAI and returns result', async () => {
     const result = await stepDraft();
     expect(result.drafted).toBe(3);
     expect(result.skipped_optout).toBe(1);
@@ -50,7 +50,7 @@ describe('stepInbox', () => {
   const origEnv = process.env;
 
   beforeEach(() => {
-    process.env = { ...origEnv, GMAIL_USER: 'test@co.com', GMAIL_APP_PASSWORD: 'pass' };
+    process.env = { ...origEnv, OUTLOOK_USER: 'test@co.com', OUTLOOK_PASSWORD: 'pass' };
   });
 
   afterEach(() => {
@@ -63,7 +63,8 @@ describe('stepInbox', () => {
   });
 
   test('skips when credentials not configured', async () => {
-    delete process.env.GMAIL_USER;
+    delete process.env.OUTLOOK_USER;
+    delete process.env.OUTLOOK_PASSWORD;
     const result = await stepInbox();
     expect(result.skipped).toBe(true);
     expect(result.reason).toBe('credentials_not_configured');

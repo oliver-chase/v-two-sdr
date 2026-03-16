@@ -155,7 +155,7 @@ describe('Mailer.send', () => {
       smtp: { ...MOCK_CONFIG.smtp, user: undefined, pass: undefined }
     });
 
-    expect(() => unconfiguredMailer.connect()).toThrow('GMAIL_USER and GMAIL_APP_PASSWORD');
+    expect(() => unconfiguredMailer.connect()).toThrow('OUTLOOK_USER and OUTLOOK_PASSWORD');
   });
 });
 

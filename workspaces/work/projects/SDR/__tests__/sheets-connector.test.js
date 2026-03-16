@@ -21,27 +21,25 @@ const path = require('path');
 
 const MOCK_SHEET_ROWS = [
   {
-    'FirstName': 'Alice',
-    'LastName': 'Johnson',
+    'Name': 'Alice Johnson',
     'Email': 'alice@techcorp.com',
     'Company': 'TechCorp',
     'Title': 'CTO',
     'LinkedIn': 'linkedin.com/in/alice-johnson',
     'Location': 'San Francisco, CA',
     'Timezone': 'America/Los_Angeles',
-    'Track': 'ai-enablement',
+    'Source': 'LinkedIn',
     'Status': 'new'
   },
   {
-    'FirstName': 'Bob',
-    'LastName': 'Smith',
+    'Name': 'Bob Smith',
     'Email': 'bob@startupxyz.com',
     'Company': 'StartupXYZ',
     'Title': 'Founder',
     'LinkedIn': 'linkedin.com/in/bob-smith',
     'Location': 'New York, NY',
     'Timezone': 'America/New_York',
-    'Track': 'product-maker',
+    'Source': 'Referral',
     'Status': 'new'
   }
 ];
@@ -49,38 +47,30 @@ const MOCK_SHEET_ROWS = [
 const MOCK_TOON_PROSPECTS = [
   {
     id: 'p-000001',
+    nm: 'Alice Johnson',
     fn: 'Alice',
-    ln: 'Johnson',
     em: 'alice@techcorp.com',
     co: 'TechCorp',
     ti: 'CTO',
     li: 'linkedin.com/in/alice-johnson',
-    lo: 'San Francisco, CA',
+    loc: 'San Francisco, CA',
     tz: 'America/Los_Angeles',
-    tr: 'ai-enablement',
+    src: 'LinkedIn',
     st: 'new',
-    ad: '2026-03-11',
+    da: '2026-03-11',
     lc: '2026-03-11',
     no: ''
   }
 ];
-
-const MOCK_CREDENTIALS = {
-  type: 'service_account',
-  project_id: 'test-project',
-  private_key_id: 'test-key-id',
-  private_key: '-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----\n',
-  client_email: 'test@test.iam.gserviceaccount.com'
-};
 
 const MOCK_CONFIG = {
   google_sheets: {
     sheet_id: 'test-sheet-id-12345',
     sheet_name: 'Prospects',
     templates_sheet: 'Templates',
-    optouts_sheet: 'OptOuts'
-  },
-  credentials_path: './secrets/google-code-credentials.json'
+    optouts_sheet: 'OptOuts',
+    api_key: 'test-api-key-abc123'
+  }
 };
 
 // ============================================================================
@@ -93,18 +83,17 @@ describe('Schema Inference', () => {
     const schema = inferSchema(headers);
 
     expect(schema).toBeDefined();
-    expect(schema.firstName).toBeDefined();
+    expect(schema.name).toBeDefined();
     expect(schema.email).toBeDefined();
     expect(schema.company).toBeDefined();
-    expect(schema.track).toBeDefined();
+    expect(schema.source).toBeDefined();
   });
 
   test('inferSchema: should map sheet headers to TOON fields', () => {
-    const headers = ['FirstName', 'LastName', 'Email', 'Company', 'Title'];
+    const headers = ['Name', 'Email', 'Company', 'Title'];
     const schema = inferSchema(headers);
 
-    expect(schema.firstName?.toonField).toBe('fn');
-    expect(schema.lastName?.toonField).toBe('ln');
+    expect(schema.name?.toonField).toBe('nm');
     expect(schema.email?.toonField).toBe('em');
     expect(schema.company?.toonField).toBe('co');
     expect(schema.title?.toonField).toBe('ti');
@@ -143,8 +132,7 @@ describe('Schema Inference', () => {
 describe('Field Mapping & Validation', () => {
   test('validateFieldMapping: should confirm valid TOON mapping', () => {
     const mapping = {
-      FirstName: 'fn',
-      LastName: 'ln',
+      Name: 'nm',
       Email: 'em',
       Company: 'co',
       Title: 'ti'
@@ -157,10 +145,10 @@ describe('Field Mapping & Validation', () => {
 
   test('validateFieldMapping: should catch missing required fields', () => {
     const mapping = {
-      FirstName: 'fn',
-      LastName: 'ln',
+      Name: 'nm',
+      Company: 'co',
       // Email missing - REQUIRED
-      Company: 'co'
+      Title: 'ti'
     };
 
     const result = validateFieldMapping(mapping);
@@ -170,8 +158,7 @@ describe('Field Mapping & Validation', () => {
 
   test('validateFieldMapping: should allow optional fields to be unmapped', () => {
     const mapping = {
-      FirstName: 'fn',
-      LastName: 'ln',
+      Name: 'nm',
       Email: 'em',
       Company: 'co',
       Title: 'ti',
@@ -184,10 +171,10 @@ describe('Field Mapping & Validation', () => {
 
   test('validateFieldMapping: should catch duplicate TOON field mappings', () => {
     const mapping = {
-      FirstName: 'fn',
-      LastName: 'fn', // DUPLICATE
-      Email: 'em',
-      Company: 'co'
+      Name: 'nm',
+      Email: 'nm', // DUPLICATE
+      Company: 'co',
+      Title: 'ti'
     };
 
     const result = validateFieldMapping(mapping);
@@ -204,24 +191,24 @@ describe('Row Parsing & Conversion', () => {
   test('parseSheetRow: should convert sheet row to TOON format', () => {
     const sheetRow = MOCK_SHEET_ROWS[0];
     const mapping = {
-      FirstName: 'fn',
-      LastName: 'ln',
+      Name: 'nm',
       Email: 'em',
       Company: 'co',
       Title: 'ti',
       LinkedIn: 'li',
-      Location: 'lo',
+      Location: 'loc',
       Timezone: 'tz',
-      Track: 'tr',
+      Source: 'src',
       Status: 'st'
     };
 
     const toonRow = parseSheetRow(sheetRow, mapping, 1);
 
     expect(toonRow.id).toBe('p-000001');
-    expect(toonRow.fn).toBe('Alice');
+    expect(toonRow.nm).toBe('Alice Johnson');
+    expect(toonRow.fn).toBe('Alice'); // derived from nm
     expect(toonRow.em).toBe('alice@techcorp.com');
-    expect(toonRow.tr).toBe('ai-enablement');
+    expect(toonRow.src).toBe('LinkedIn');
   });
 
   test('parseSheetRow: should assign incrementing IDs', () => {
@@ -234,8 +221,7 @@ describe('Row Parsing & Conversion', () => {
 
   test('parseSheetRow: should handle missing optional fields', () => {
     const incompleteRow = {
-      FirstName: 'Charlie',
-      LastName: 'Brown',
+      Name: 'Charlie Brown',
       Email: 'charlie@example.com',
       Company: 'ACME',
       Title: 'Manager'
@@ -243,38 +229,36 @@ describe('Row Parsing & Conversion', () => {
     };
 
     const mapping = {
-      FirstName: 'fn',
-      LastName: 'ln',
+      Name: 'nm',
       Email: 'em',
       Company: 'co',
       Title: 'ti',
       LinkedIn: 'li',
-      Location: 'lo'
+      Location: 'loc'
     };
 
     const toonRow = parseSheetRow(incompleteRow, mapping, 1);
     expect(toonRow.li).toBeUndefined();
-    expect(toonRow.lo).toBeUndefined();
+    expect(toonRow.loc).toBeUndefined();
   });
 
   test('toonToSheetRow: should convert TOON back to sheet format', () => {
     const toonRow = MOCK_TOON_PROSPECTS[0];
     const reverseMapping = {
-      fn: 'FirstName',
-      ln: 'LastName',
+      nm: 'Name',
       em: 'Email',
       co: 'Company',
       ti: 'Title',
       li: 'LinkedIn',
-      lo: 'Location',
+      loc: 'Location',
       tz: 'Timezone',
-      tr: 'Track',
+      src: 'Source',
       st: 'Status'
     };
 
     const sheetRow = toonToSheetRow(toonRow, reverseMapping);
 
-    expect(sheetRow.FirstName).toBe('Alice');
+    expect(sheetRow.Name).toBe('Alice Johnson');
     expect(sheetRow.Email).toBe('alice@techcorp.com');
     expect(sheetRow.Status).toBe('new');
   });
@@ -282,18 +266,17 @@ describe('Row Parsing & Conversion', () => {
   test('sheetRowToToon: should parse with timestamp metadata', () => {
     const sheetRow = MOCK_SHEET_ROWS[0];
     const mapping = {
-      FirstName: 'fn',
-      LastName: 'ln',
+      Name: 'nm',
       Email: 'em',
       Company: 'co',
       Title: 'ti',
-      Track: 'tr',
+      Source: 'src',
       Status: 'st'
     };
 
     const toonRow = sheetRowToToon(sheetRow, mapping, 1);
 
-    expect(toonRow.ad).toMatch(/^\d{4}-\d{2}-\d{2}$/); // YYYY-MM-DD
+    expect(toonRow.da).toMatch(/^\d{4}-\d{2}-\d{2}$/); // YYYY-MM-DD
     expect(toonRow.lc).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 });
@@ -305,16 +288,14 @@ describe('Row Parsing & Conversion', () => {
 describe('Data Validation', () => {
   test('parseSheetRow: should mark invalid emails for review', () => {
     const badEmailRow = {
-      FirstName: 'Dave',
-      LastName: 'Invalid',
+      Name: 'Dave Invalid',
       Email: 'not-an-email', // INVALID
       Company: 'BadCorp',
       Title: 'CEO'
     };
 
     const mapping = {
-      FirstName: 'fn',
-      LastName: 'ln',
+      Name: 'nm',
       Email: 'em',
       Company: 'co',
       Title: 'ti'
@@ -331,7 +312,7 @@ describe('Data Validation', () => {
       Status: 'sent'
     };
 
-    const mapping = { Status: 'st', FirstName: 'fn', Email: 'em', Company: 'co', Title: 'ti', LastName: 'ln' };
+    const mapping = { Status: 'st', Name: 'nm', Email: 'em', Company: 'co', Title: 'ti' };
     const toonRow = parseSheetRow(row, mapping, 1);
 
     expect(toonRow.st).toBe('sent');
@@ -348,7 +329,7 @@ describe('GoogleSheetsConnector — Initialization', () => {
 
     expect(connector.sheetId).toBe('test-sheet-id-12345');
     expect(connector.sheetName).toBe('Prospects');
-    expect(connector.credentialsPath).toBe('./secrets/google-code-credentials.json');
+    expect(connector.apiKey).toBe('test-api-key-abc123');
   });
 
   test('new GoogleSheetsConnector: should validate config structure', () => {
@@ -364,14 +345,16 @@ describe('GoogleSheetsConnector — Initialization', () => {
     }).toThrow('sheet_id');
   });
 
-  test('new GoogleSheetsConnector: should accept credentialsPath override', () => {
+  test('new GoogleSheetsConnector: should accept api_key override', () => {
     const customConfig = {
-      ...MOCK_CONFIG,
-      credentials_path: '/custom/path.json'
+      google_sheets: {
+        ...MOCK_CONFIG.google_sheets,
+        api_key: 'custom-api-key-xyz'
+      }
     };
 
     const connector = new GoogleSheetsConnector(customConfig);
-    expect(connector.credentialsPath).toBe('/custom/path.json');
+    expect(connector.apiKey).toBe('custom-api-key-xyz');
   });
 });
 
@@ -396,7 +379,7 @@ describe('GoogleSheetsConnector — Schema Detection (Mocked API)', () => {
     const schema = await connector.detectSchema();
 
     expect(schema).toBeDefined();
-    expect(schema.firstName).toBeDefined();
+    expect(schema.name).toBeDefined();
     expect(schema.email).toBeDefined();
     expect(schema.company).toBeDefined();
   });
@@ -411,9 +394,9 @@ describe('GoogleSheetsConnector — Schema Detection (Mocked API)', () => {
   test('detectSchema: should return mapping suggestions', async () => {
     const schema = await connector.detectSchema();
 
-    expect(schema.firstName.toonField).toBe('fn');
+    expect(schema.name.toonField).toBe('nm');
     expect(schema.email.toonField).toBe('em');
-    expect(schema.track.toonField).toBe('tr');
+    expect(schema.source.toonField).toBe('src');
   });
 });
 
@@ -433,8 +416,7 @@ describe('GoogleSheetsConnector — Field Confirmation Workflow', () => {
 
   test('confirmFieldMapping: should validate user-provided mapping', async () => {
     const userMapping = {
-      FirstName: 'fn',
-      LastName: 'ln',
+      Name: 'nm',
       Email: 'em',
       Company: 'co',
       Title: 'ti'
@@ -448,8 +430,8 @@ describe('GoogleSheetsConnector — Field Confirmation Workflow', () => {
 
   test('confirmFieldMapping: should reject incomplete mappings', async () => {
     const incompleteMapping = {
-      FirstName: 'fn',
-      LastName: 'ln'
+      Name: 'nm',
+      Company: 'co'
       // Email missing - REQUIRED
     };
 
@@ -485,15 +467,14 @@ describe('GoogleSheetsConnector — Read Operations (Mocked)', () => {
       }
     };
     connector.fieldMapping = {
-      FirstName: 'fn',
-      LastName: 'ln',
+      Name: 'nm',
       Email: 'em',
       Company: 'co',
       Title: 'ti',
       LinkedIn: 'li',
-      Location: 'lo',
+      Location: 'loc',
       Timezone: 'tz',
-      Track: 'tr',
+      Source: 'src',
       Status: 'st'
     };
   });
@@ -502,17 +483,17 @@ describe('GoogleSheetsConnector — Read Operations (Mocked)', () => {
     const prospects = await connector.readProspects();
 
     expect(prospects).toHaveLength(2);
-    expect(prospects[0].fn).toBe('Alice');
-    expect(prospects[1].fn).toBe('Bob');
+    expect(prospects[0].fn).toBe('Alice'); // derived from nm
+    expect(prospects[1].fn).toBe('Bob');   // derived from nm
   });
 
   test('readProspects: should convert to TOON format', async () => {
     const prospects = await connector.readProspects();
 
     expect(prospects[0]).toHaveProperty('id');
-    expect(prospects[0]).toHaveProperty('fn');
+    expect(prospects[0]).toHaveProperty('nm');
     expect(prospects[0]).toHaveProperty('em');
-    expect(prospects[0]).toHaveProperty('tr');
+    expect(prospects[0]).toHaveProperty('src');
   });
 
   test('readProspects: should include metadata', async () => {
@@ -546,8 +527,7 @@ describe('GoogleSheetsConnector — Write Operations (Mocked)', () => {
       }
     };
     connector.fieldMapping = {
-      FirstName: 'fn',
-      LastName: 'ln',
+      Name: 'nm',
       Email: 'em',
       Company: 'co',
       Title: 'ti',
@@ -559,8 +539,8 @@ describe('GoogleSheetsConnector — Write Operations (Mocked)', () => {
     const newProspects = [
       {
         id: 'p-000003',
+        nm: 'Eve White',
         fn: 'Eve',
-        ln: 'White',
         em: 'eve@company.com',
         co: 'Company',
         ti: 'VP',
@@ -580,14 +560,14 @@ describe('GoogleSheetsConnector — Write Operations (Mocked)', () => {
     await connector.appendProspects([toonRow]);
 
     const callArgs = connector.doc.sheetsByTitle.Prospects.addRows.mock.calls[0];
-    expect(callArgs[0][0].FirstName).toBe('Alice');
+    expect(callArgs[0][0].Name).toBe('Alice Johnson');
   });
 
   test('appendProspects: should batch write for performance', async () => {
     const manyProspects = Array.from({ length: 150 }, (_, i) => ({
       id: `p-${String(i + 1).padStart(6, '0')}`,
+      nm: `First${i} Last${i}`,
       fn: `First${i}`,
-      ln: `Last${i}`,
       em: `email${i}@test.com`,
       co: `Corp${i}`,
       ti: 'Title',
@@ -719,7 +699,7 @@ describe('Error Handling', () => {
       }
     };
     connector.fieldMapping = {
-      FirstName: 'fn', LastName: 'ln', Email: 'em', Company: 'co', Title: 'ti'
+      Name: 'nm', Email: 'em', Company: 'co', Title: 'ti'
     };
 
     const result = await connector.appendProspects([MOCK_TOON_PROSPECTS[0]], { retries: 3 });
@@ -753,12 +733,11 @@ describe('Full Integration: Sync Workflow', () => {
 
   test('fullSync: should read, validate, and return TOON prospects', async () => {
     connector.fieldMapping = {
-      FirstName: 'fn',
-      LastName: 'ln',
+      Name: 'nm',
       Email: 'em',
       Company: 'co',
       Title: 'ti',
-      Track: 'tr',
+      Source: 'src',
       Status: 'st'
     };
 
@@ -777,12 +756,11 @@ describe('Full Integration: Sync Workflow', () => {
       ]);
 
     connector.fieldMapping = {
-      FirstName: 'fn',
-      LastName: 'ln',
+      Name: 'nm',
       Email: 'em',
       Company: 'co',
       Title: 'ti',
-      Track: 'tr',
+      Source: 'src',
       Status: 'st'
     };
 
@@ -790,17 +768,16 @@ describe('Full Integration: Sync Workflow', () => {
 
     // Should have 1 prospect (Bob) after excluding Alice
     expect(result.prospects).toHaveLength(1);
-    expect(result.prospects[0].fn).toBe('Bob');
+    expect(result.prospects[0].fn).toBe('Bob'); // fn derived from nm
   });
 
   test('fullSync: should report sync summary', async () => {
     connector.fieldMapping = {
-      FirstName: 'fn',
-      LastName: 'ln',
+      Name: 'nm',
       Email: 'em',
       Company: 'co',
       Title: 'ti',
-      Track: 'tr',
+      Source: 'src',
       Status: 'st'
     };
 
@@ -819,6 +796,5 @@ describe('Full Integration: Sync Workflow', () => {
 module.exports = {
   MOCK_SHEET_ROWS,
   MOCK_TOON_PROSPECTS,
-  MOCK_CREDENTIALS,
   MOCK_CONFIG
 };

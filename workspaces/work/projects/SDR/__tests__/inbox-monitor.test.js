@@ -56,7 +56,7 @@ const REPLIES_LOG = path.resolve(__dirname, '../outreach/replies-test.json');
 const SENDS_FIXTURE = path.resolve(__dirname, 'fixtures/sends-inbox-test.json');
 
 const MOCK_CONFIG = {
-  gmail: {
+  outlook: {
     user: 'oliver@vtwo.co',
     pass: 'test-app-password'
   },
@@ -143,25 +143,25 @@ describe('buildConfig', () => {
     process.env = originalEnv;
   });
 
-  test('reads GMAIL_USER and GMAIL_APP_PASSWORD from env', () => {
-    process.env.GMAIL_USER = 'test@vtwo.co';
-    process.env.GMAIL_APP_PASSWORD = 'secret-app-pass';
+  test('reads OUTLOOK_USER and OUTLOOK_PASSWORD from env', () => {
+    process.env.OUTLOOK_USER = 'test@vtwo.co';
+    process.env.OUTLOOK_PASSWORD = 'secret-app-pass';
 
     const { buildConfig } = require('../scripts/inbox-monitor');
     const config = buildConfig();
 
-    expect(config.gmail.user).toBe('test@vtwo.co');
-    expect(config.gmail.pass).toBe('secret-app-pass');
+    expect(config.outlook.user).toBe('test@vtwo.co');
+    expect(config.outlook.pass).toBe('secret-app-pass');
   });
 
   test('returns imap host and port', () => {
-    process.env.GMAIL_USER = 'test@vtwo.co';
-    process.env.GMAIL_APP_PASSWORD = 'secret';
+    process.env.OUTLOOK_USER = 'test@vtwo.co';
+    process.env.OUTLOOK_PASSWORD = 'secret';
 
     const { buildConfig } = require('../scripts/inbox-monitor');
     const config = buildConfig();
 
-    expect(config.imap.host).toBe('imap.gmail.com');
+    expect(config.imap.host).toBe('outlook.office365.com');
     expect(config.imap.port).toBe(993);
   });
 });
@@ -335,17 +335,16 @@ describe('checkInbox', () => {
     expect(result.classified).toHaveLength(0);
   });
 
-  test('connects using gmail credentials from config', async () => {
+  test('connects using outlook credentials from config', async () => {
     await checkInbox(MOCK_CONFIG);
 
-    const instance = ImapFlow.mock.instances[0];
-    // ImapFlow constructor should be called with host imap.gmail.com
+    // ImapFlow constructor should be called with outlook.office365.com
     const constructorArgs = ImapFlow.mock.calls[0][0];
-    expect(constructorArgs.host).toBe('imap.gmail.com');
+    expect(constructorArgs.host).toBe('outlook.office365.com');
     expect(constructorArgs.port).toBe(993);
   });
 
-  test('uses config gmail credentials', async () => {
+  test('uses config outlook credentials', async () => {
     await checkInbox(MOCK_CONFIG);
 
     const constructorArgs = ImapFlow.mock.calls[0][0];
