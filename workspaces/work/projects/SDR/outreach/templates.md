@@ -7,12 +7,12 @@
 ```
 Hi [Name],
 
-Came across [Company] — [one specific observation, e.g., "looks like you're scaling the product team fast"].
+Came across [Company] and thought there might be a fit worth a quick conversation.
 
 At V.Two we build custom digital products end-to-end — strategy, engineering, delivery. A lot of founders
 and product leaders come to us when they need to ship something serious without splitting focus across vendors.
 
-Worth a quick conversation?
+Worth a chat?
 
 [Oliver]
 V.Two | vtwo.co

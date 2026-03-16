@@ -952,10 +952,10 @@ app.get('/sdr/metrics', (req, res) => {
     }
   }
 
-  // Count replies by classification
+  // Count replies by classification (replies.json is a bare array)
   const repliesData = readJsonFile(repliesPath)
   if (repliesData) {
-    const replies = repliesData.replies || []
+    const replies = Array.isArray(repliesData) ? repliesData : (repliesData.replies || [])
     metrics.rpl = replies.length
     for (const r of replies) {
       const cls = r.cls || r.classification || ''

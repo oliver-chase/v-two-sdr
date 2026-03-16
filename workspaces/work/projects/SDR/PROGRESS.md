@@ -1,110 +1,86 @@
 # Project: Oliver Chase AI SDR System
 
 ## Current State
-- **Phase:** 1 — Foundation + Cleanup (Mar 11-17)
-- **Current Task:** Phase 1 Chunks 2-4 Parallel Implementation (3 of 4 complete)
-- **Last Completed:**
-  - ✅ Chunk 1: Cleanup & Reorganization
-  - ✅ Chunk 3: Enrichment Engine (54 tests passing)
-  - ✅ Chunk 4: State Machine (55 tests passing)
-- **In Progress:** Chunk 2: Google Sheets Integration (Agent ad81c1f320775ac31)
-- **Branch:** feature/sdr-phase1-parallel (isolated worktree)
+- **Phase:** 2 COMPLETE — Ready for first run (pending credentials setup)
+- **Last Completed:** 2026-03-16
+- **Tests:** ✅ 288/288 passing | Coverage thresholds met
+- **Branch:** main
 
-## Test Suite
-- **Suites:** ✅ 3/3 chunks have tests
-  - Chunk 1: File cleanup (no code tests needed)
-  - Chunk 3: enrichment-engine.test.js + enrichment-integration.test.js (54 tests)
-  - Chunk 4: state-machine.test.js (55 tests)
-- **Tests:** ✅ 109 total tests passing (Chunks 3 + 4)
-- **Coverage:** ✅ TDD approach: tests written first, implementation second, all passing
-- **Pending:** Chunk 2 test results when available
+## What's Built (All Complete)
 
-## Decisions This Session (2026-03-12)
+| Chunk | Component | Status | Tests |
+|-------|-----------|--------|-------|
+| 1 | Cleanup & File Reorganization | ✅ Done | — |
+| 2 | Google Sheets Integration | ✅ Done | ~60 tests |
+| 3 | Enrichment Engine | ✅ Done | 54 tests |
+| 4 | State Machine | ✅ Done | 55 tests |
+| 5 | Email Drafting + Approval CLI | ✅ Done | included |
+| 6 | Inbox Monitor + Reply Classifier | ✅ Done | included |
+| 7 | Daily Orchestration (daily-run.js) | ✅ Done | included |
+| 8 | Dashboard Metrics Endpoints | ✅ Done | — |
 
-- **Decision 1:** Deploy Phase 1 Chunks 2-4 in parallel with dedicated subagent team
-  - Reason: Chunks are independent, can run simultaneously; parallelization reduces timeline
-  - Outcome: 3 implementer subagents dispatched (Dev for Chunks 2+4, OpenClaw+Dev for Chunk 3)
+## What's Needed Before First Run
 
-- **Decision 2:** Create TEAM-MANIFEST.md to formalize assignments, ownership, and cleanup rules
-  - Reason: Ensure all team members understand what NOT to do (protect orchestrator/team/souls)
-  - Outcome: Clear authority chain, file location rules, code standards documented per role
+Setup steps (user action required):
+1. ☐ Gmail App Password → `GMAIL_APP_PASSWORD` in `.env`
+2. ☐ Google Cloud service account JSON → `secrets/google-credentials.json`
+3. ☐ Google Sheet ID → `GOOGLE_SHEET_ID` in `.env`
+4. ☐ Anthropic API key → `ANTHROPIC_API_KEY` in `.env`
+5. ☐ Add prospects to `outreach/prospects.csv`
+6. ☐ Review templates in `outreach/templates.md`
 
-- **Decision 3:** Deploy 3 additional coordinator subagents (Work Coordinator, Review Coordinator, Team Onboarding)
-  - Reason: Validation during execution prevents structural violations; reviews ensure quality gates
-  - Outcome: 6 subagents total (3 implementers + 3 coordinators) running in parallel worktree
+See `secrets/README.md` for step-by-step credential setup.
+See `.env.example` for all environment variables.
 
-- **Decision 4:** Create EXECUTION-DASHBOARD.md to track real-time progress, subagent status, quality gates
-  - Reason: Transparency on what's running, what's blocked, success criteria; facilitates recovery if compaction occurs
-  - Outcome: Single source of truth for Phase 1 execution state (subagent IDs, progress, file structure)
+## First Run Sequence (After Setup)
+```bash
+cp .env.example .env       # fill in credentials
+node scripts/validate-prospects.js   # check CSV format
+node scripts/sync-from-sheets.js     # optional: pull from Google Sheet
+node scripts/draft-emails.js         # generate drafts → outreach/draft-plan.json
+npm run approve                      # review drafts interactively
+npm run send:dry                     # dry-run to verify before real sends
+npm run send                         # send approved emails
+npm run inbox                        # check for replies
+```
 
-## Blockers or Open Questions
-- **None currently** — All 3 implementers deployed and working
-- **Quality Gates:** Spec compliance + code quality reviews waiting for implementers to complete each chunk
-- **Monitoring:** Work Coordinator (a32deb38e2d176e6c) watching file structure compliance during execution
+## Daily Automation (After First Manual Run)
+```bash
+node scripts/daily-run.js            # full orchestration: sync→draft→inbox→report
+node scripts/daily-run.js --step=inbox  # just inbox check
+```
 
-## Next Task
+## Key Files
 
-**Phase 1 Execution Status (3 of 4 Complete):**
-- ✅ Chunk 1: Cleanup & Reorganization (COMPLETE)
-- 🔄 Chunk 2: Sheets connector (6-8h) — Agent ad81c1f320775ac31 RUNNING
-- ✅ Chunk 3: Enrichment engine — COMPLETE (54 tests passing)
-- ✅ Chunk 4: State machine — COMPLETE (55 tests passing)
+**Scripts:**
+- `scripts/validate-prospects.js` — CSV → prospects.json validation
+- `scripts/sync-from-sheets.js` — Google Sheets sync
+- `scripts/draft-emails.js` — Draft generation
+- `scripts/approve-drafts.js` — Interactive approval CLI
+- `scripts/send-approved.js` — Send approved drafts
+- `scripts/inbox-monitor.js` — IMAP reply detection
+- `scripts/daily-run.js` — Master orchestration
 
-**Supporting Work Completed:**
-- ✅ Work Coordinator (a32deb38e2d176e6c) — Completed, found 3 violations to address
-- ✅ Team Onboarding (ac5c6bb55f7a8a587) — Completed, zero violations
-- 🔄 Review Coordinator (a830843af9c6f33ec) — Activating after Chunk 2 completes
+**Data:**
+- `outreach/prospects.csv` — Input: raw prospect list
+- `prospects.json` — Canonical TOON prospect store
+- `outreach/draft-plan.json` — Generated drafts
+- `outreach/approved-sends.json` — Approved queue
+- `outreach/sends.json` — Send log
+- `outreach/replies.json` — Reply log
+- `outreach/opt-outs.json` — Opt-out list
 
-**Violations Found (Address Before Review Gate):**
-1. Test directory: Using `tests/` instead of `__tests__/` (needs rename)
-2. sheets-connector.js: Verify file size (may exceed 500-line limit)
-3. PROGRESS.md branch name: ✅ Fixed by implementers
+**Config:**
+- `.env` — All credentials (create from `.env.example`)
+- `outreach/templates.md` — Email templates A-E
+- `config.email.js` — Email config (reads from .env)
+- `config.sheets.js` — Sheets config (reads from .env)
 
-**When Phase 1 Complete (After Chunk 2):**
-1. Address Work Coordinator violations (test dir, file size)
-2. Run Review Coordinator spec compliance + code quality gates
-3. Consolidate feature/sdr-phase1-parallel branch back to main
-4. Mark Phase 1 COMPLETE
-5. Dispatch Phase 2 Chunks 5-6
-
-**Expected completion:** 2026-03-13 (Chunk 2 finishing, Phase 1 complete by EOD)
-
----
-
-## Subsystem Status Grid (Phase 1)
-
-| Subsystem | Component | Status | Owner | ETA |
-|-----------|-----------|--------|-------|-----|
-| **Foundation** | Cleanup & Files | ✅ DONE | Claude Code | Mar 11 |
-| | Google Sheets | 📋 IN PROGRESS | Dev | Mar 13 |
-| | Enrichment Engine | 📋 IN PROGRESS | OpenClaw + Dev | Mar 14 |
-| | State Machine | ✅ DONE | Claude Code | Mar 12 |
-| **Execution** | Email Drafting | ⏳ BLOCKED by Ch 2,3,4 | SDR + Dev | Mar 21 |
-| | Inbox & Reply | ⏳ BLOCKED by Ch 4 | Dev + OpenClaw | Mar 22 |
-| **Orchestration** | CLI + Daily Flow | ⏳ BLOCKED by Ch 5,6 | Dev | Mar 28 |
-| **Analytics** | Metrics + Dashboard | ⏳ BLOCKED by Ch 4 | FE Designer + Dev | Mar 29 |
+## Dashboard Integration
+- `GET /sdr/metrics` — Pipeline health snapshot
+- `GET /sdr/pipeline` — Stage-by-stage funnel visualization
+- Served from `system/dashboard/server.js` on port 3001
 
 ---
-
-## Token Budget (Weekly)
-- OpenClaw research: 3-5k tokens
-- Dev infrastructure: 2-3k tokens
-- SDR coordination: 1k tokens
-- Dashboard/analytics: 1-2k tokens
-- **Total:** 7-11k tokens/week
-
----
-
-## How to Resume After Compaction
-**See:** `/Users/oliver/OliverRepo/workspaces/work/projects/SDR/CHECKPOINT.md`
-- 30-second status check
-- Full context for next session
-- Execution options (A/B/C)
-
----
-
-**Last Updated:** 2026-03-12 20:45 UTC
-**Status:** Phase 1 Chunks 2-4 🔄 IN PROGRESS (6 subagents, 3 implementers + 3 coordinators)
-**Workstree:** `/Users/oliver/OliverRepo/.worktrees/sdr-phase1-parallel`
-**Branch:** `feature/sdr-phase1-parallel`
-**Dashboard:** See EXECUTION-DASHBOARD.md for real-time progress
+**Last Updated:** 2026-03-16
+**Status:** ✅ Phase 2 Complete — Awaiting credential setup for first run
