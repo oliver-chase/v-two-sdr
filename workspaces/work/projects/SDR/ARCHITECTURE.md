@@ -1,6 +1,6 @@
 # SDR System Architecture
 
-**Status:** Design phase complete | **Reviewed:** 2026-03-11 | **Implementation:** Phase 1 starting
+**Status:** Phase 2 complete | **Reviewed:** 2026-03-16 | **Tests:** 338/338 passing
 
 ---
 
@@ -205,25 +205,36 @@ All prospect data, send logs, and reports use TOON (Token Optimization) format w
 
 ### Google Sheets API
 ```
-GET /sheets/{sheetId}/values/Prospects
-  ├─ Returns: All rows from "Prospects" tab
-  ├─ Schema: Dynamic (inferred from headers)
+Auth: API key (read-only) — no service account required
+Sheet: "V.Two SDR - Master Lead Repository"
+Tab:  "Leads"
+
+Column schema (in order):
+  Name, Title, Company, Email, Location, Timezone, LinkedIn,
+  Company Size, Industry, Funding, Signal, Source, Status,
+  Date Added, First Contact, Last Contact, Follow-Up Count,
+  Next Follow-Up, Notes
+
+GET /sheets/{sheetId}/values/Leads
+  ├─ Returns: All rows from "Leads" tab
+  ├─ Auth: ?key={GOOGLE_API_KEY}
   └─ Rate limit: 300 reads/min
 
-POST /sheets/{sheetId}/values/Prospects:append
+POST /sheets/{sheetId}/values/Leads:append
   ├─ Body: [enriched fields, state updates, metrics]
   └─ Rate limit: 300 writes/min
 ```
 
-### Outlook / Microsoft Graph API
+### Outlook SMTP/IMAP (Email)
 ```
-GET /me/mailFolders/inbox/messages?$filter=receivedDateTime ge {lastCheck}
-  ├─ Returns: New messages since last check
-  └─ Rate limit: Standard Graph throttling
+Sender: oliver@vtwo.co
+SMTP:   smtp.office365.com:587 (STARTTLS)
+IMAP:   outlook.office365.com:993 (TLS)
+Auth:   OUTLOOK_PASSWORD env var
 
-POST /me/sendMail
-  ├─ Requires: User approval (gated by SDR)
-  └─ Includes: BCC to oliver@vtwo.co
+Outbound: SMTP send via Nodemailer
+Inbound:  IMAP polling via inbox-monitor.js
+BCC:      oliver@vtwo.co on all outbound sends
 ```
 
 ### Telegram Bot API
@@ -287,4 +298,30 @@ GET /web/fetch?url={website}
 
 ---
 
-**Last Updated:** 2026-03-11 | **Next Review:** Phase 1 Complete (Mar 17)
+---
+
+## LLM Routing (AI Drafting)
+
+3-tier fallback — draft-emails.js auto-routes based on API availability:
+
+| Tier | Provider | Env Var | Current Status |
+|------|----------|---------|----------------|
+| 1 | Anthropic Claude | `ANTHROPIC_API_KEY` | No funds — skipped in practice |
+| 2 | OpenRouter paid | `OPENROUTER_API_KEY` | **Effective Tier 1** |
+| 3 | OpenRouter free | `OPENROUTER_FREE_KEY` | Fallback |
+| 4 | Static templates | — | Last resort |
+
+Note: Anthropic account currently has no funds. OpenRouter paid tier is the effective first tier until Anthropic is recharged. The fallback chain is automatic — no code change needed when Anthropic is funded again.
+
+---
+
+## GitHub Actions (Daily Automation)
+
+- **File:** `.github/workflows/daily-sdr.yml`
+- **Schedule:** 8AM ET, Monday–Friday
+- **Repo:** saturdaythings/v-two-sdr
+- **Secrets provisioned:** GOOGLE_API_KEY, GOOGLE_SHEET_ID, OUTLOOK_PASSWORD, ANTHROPIC_API_KEY, OPENROUTER_API_KEY, OPENROUTER_FREE_KEY
+
+---
+
+**Last Updated:** 2026-03-16 | **Status:** Phase 2 Complete | 338/338 tests passing

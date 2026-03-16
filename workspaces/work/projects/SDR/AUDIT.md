@@ -1,6 +1,6 @@
 # SDR Project Audit
 
-**Date:** 2026-03-11 | **Status:** ✅ Ready to Launch | **Risk Level:** Medium
+**Date:** 2026-03-16 | **Status:** ✅ Phase 2 Complete | **Risk Level:** Low
 
 ---
 
@@ -8,81 +8,85 @@
 
 ### ✅ Verified Safe
 
-- **Send Approval:** All sends require Kiana approval (non-negotiable, no autonomous execution)
+- **Send Approval:** All sends require explicit approval (non-negotiable, no autonomous execution)
 - **Opt-outs:** Immediate action, no further contact
-- **No Credentials Shared:** Email account configured separately
-- **Data:** Prospect contact info only (no PII beyond business info)
-- **Email Validation:** All prospects validated before sending
+- **Credentials:** All secrets in GitHub Secrets + local `.env` (never committed)
+- **Data:** Prospect business contact info only (no PII beyond standard professional data)
+- **Email Validation:** All prospects validated before drafting or sending
+- **BCC tracking:** oliver@vtwo.co BCC'd on all outbound sends
 
-### ⚠️ Medium Risk Areas (Mitigated)
+### ✅ Previously Medium Risk — Now Mitigated
 
-1. **Email Sending Authority** — Mitigation: Explicit approval workflow in PROGRESS.md
-2. **Prospect Data Accuracy** — Mitigation: Claude Code validation + dedupe
-3. **Bounces/Opt-outs** — Mitigation: Weekly tracking, immediate opt-out removal
-
----
-
-## Structural Findings
-
-### ✅ Ready for Week 1
-
-- **File Structure:** Defined in SKILL.md (prospects.json, sends.json, opt-outs.json, weekly-reports.json)
-- **Team:** Clear role assignment (OpenClaw research, Claude Code validation, SDR execution)
-- **Workflows:** Documented weekly cycle and approval process
-- **Data Format:** TOON format specified for efficiency
-
-### 📋 Needs Completion
-
-- [ ] OpenClaw research script (web_search, LinkedIn, email validation)
-- [ ] prospects.json created with initial batch
-- [ ] Email templates (A-C) written and reviewed
-- [ ] sends.json schema verified
-- [ ] Weekly report template finalized
+1. **Email Sending Authority** — Mitigated: Approval CLI (approve-drafts.js) + dry-run mode
+2. **Prospect Data Accuracy** — Mitigated: validate-prospects.js with schema enforcement + dedupe
+3. **Bounces/Opt-outs** — Mitigated: inbox-monitor.js classifies bounces; opt-outs.json enforced
 
 ---
 
-## Phase 1 Audit Checklist (Week 1)
+## Phase 2 Completion Audit
 
-- [ ] 300+ prospects researched
-- [ ] All prospects validated (email, company, title)
-- [ ] Duplicates removed (Claude Code)
-- [ ] prospects.json in TOON format
-- [ ] Track assignment (AI Enablement, Product Maker, Pace Car)
-- [ ] Templates A-C ready (Kiana approval)
-- [ ] Send workflow tested (approval → execute)
-- [ ] Weekly report format documented
-- [ ] Token usage tracked
+### ✅ All Complete
+
+- [x] Google Sheets integration (API key auth, "Leads" tab, full column schema)
+- [x] Email drafting with 3-tier LLM fallback (Anthropic → OpenRouter paid → OpenRouter free → static)
+- [x] Approval CLI (interactive review of all drafts before send)
+- [x] Outlook SMTP sending (smtp.office365.com:587)
+- [x] Outlook IMAP inbox monitoring (outlook.office365.com:993)
+- [x] Reply classifier (LLM-based: positive/negative/neutral/unclear/ooo)
+- [x] State machine (full lead lifecycle, illegal transitions blocked)
+- [x] Daily orchestration (daily-run.js, 13-step pipeline)
+- [x] GitHub Actions (daily-sdr.yml, 8AM ET weekdays)
+- [x] Dashboard metrics endpoints (/api/sdr/metrics, /api/sdr/pipeline)
+- [x] TOON format throughout (token-optimized JSON)
+- [x] Test suite: 338/338 tests passing, coverage thresholds met
+- [x] GitHub Secrets provisioned (all 6 keys set)
 
 ---
 
-## Success Indicators (Week 1)
+## Current Configuration Audit
 
-✅ Ready when:
-1. 300+ prospects in prospects.json
-2. Templates A-C approved by Kiana
-3. Send approval workflow tested
-4. Weekly report template created
-5. OpenClaw/Claude Code coordination working
+| Component | Config | Status |
+|-----------|--------|--------|
+| Email provider | Outlook (oliver@vtwo.co) | ✅ Correct |
+| SMTP | smtp.office365.com:587 | ✅ Correct |
+| IMAP | outlook.office365.com:993 | ✅ Correct |
+| Sheets auth | API key (read-only) | ✅ Correct |
+| Sheet name | "V.Two SDR - Master Lead Repository" | ✅ Correct |
+| Tab name | "Leads" | ✅ Correct |
+| LLM Tier 1 | Anthropic (unfunded — skipped) | ⚠️ Fund account to activate |
+| LLM Tier 2 | OpenRouter paid (effective Tier 1) | ✅ Active |
+| LLM Tier 3 | OpenRouter free | ✅ Active |
+| CI/CD | GitHub Actions, 8AM ET weekdays | ✅ Configured |
+
+---
+
+## Pre-First-Run Checklist
+
+- [ ] Local `.env` populated from GitHub Secrets
+- [ ] Prospects added to Google Sheet ("Leads" tab)
+- [ ] Test sync: `node scripts/sync-from-sheets.js`
+- [ ] Test dry-run send: `npm run send:dry`
+- [ ] Review templates: `outreach/templates.md`
 
 ---
 
 ## Known Limitations
 
-- Email sending requires manual Kiana approval (by design)
-- No autonomous follow-up scheduling yet (manual for Week 1)
-- Reply tracking semi-manual (monitored daily by SDR)
+- Email sending requires explicit approval (by design — no autonomous sends)
+- Anthropic API currently unfunded; OpenRouter paid is effective Tier 1
+- Follow-up scheduling is automated but requires state machine to be seeded with sent history
 
 ---
 
-## Next Audit: Week 1 Checkpoint
+## Next Audit: After First Week of Sends
 
-After first week of sends, audit:
-- Reply rate (target 5-10%)
+Audit targets:
+- Reply rate (target 5–10%)
 - Opt-out rate (target <2%)
-- Send volume (target 10-15)
-- Team workflow efficiency
-- Any data quality issues
+- Send volume (target 10–15/day to start)
+- LLM draft quality (spot-check 5 drafts/week)
+- Any data quality issues from Google Sheet sync
 
 ---
 
-**Verdict:** ✅ READY TO LAUNCH | No blockers | Team prepared | Workflows defined
+**Verdict:** ✅ READY TO RUN | All code complete | Credentials set | One dry-run away from live

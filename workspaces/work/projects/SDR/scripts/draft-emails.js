@@ -310,16 +310,18 @@ async function callLLM(prompt) {
   // Tier 1: Anthropic (fastest, best quality)
   if (process.env.ANTHROPIC_API_KEY) {
     try {
-      return await _callAnthropic(prompt, process.env.ANTHROPIC_API_KEY);
+      const text = await _callAnthropic(prompt, process.env.ANTHROPIC_API_KEY);
+      return { text, provider: 'anthropic' };
     } catch (err) {
       console.warn(`[llm] Anthropic failed (${err.message}) — trying OpenRouter paid...`);
     }
   }
 
-  // Tier 2: OpenRouter paid (claude-haiku or gpt-4o-mini)
+  // Tier 2: OpenRouter paid (gpt-4o-mini)
   if (process.env.OPENROUTER_API_KEY) {
     try {
-      return await _callOpenRouter(prompt, process.env.OPENROUTER_API_KEY, 'openai/gpt-4o-mini');
+      const text = await _callOpenRouter(prompt, process.env.OPENROUTER_API_KEY, 'openai/gpt-4o-mini');
+      return { text, provider: 'openrouter-paid' };
     } catch (err) {
       console.warn(`[llm] OpenRouter paid failed (${err.message}) — trying OpenRouter free...`);
     }
@@ -328,7 +330,8 @@ async function callLLM(prompt) {
   // Tier 3: OpenRouter free (slower, may queue)
   if (process.env.OPENROUTER_FREE_KEY) {
     try {
-      return await _callOpenRouter(prompt, process.env.OPENROUTER_FREE_KEY, 'meta-llama/llama-3.3-70b-instruct:free');
+      const text = await _callOpenRouter(prompt, process.env.OPENROUTER_FREE_KEY, 'meta-llama/llama-3.3-70b-instruct:free');
+      return { text, provider: 'openrouter-free' };
     } catch (err) {
       console.warn(`[llm] OpenRouter free failed (${err.message})`);
     }
@@ -384,14 +387,14 @@ BODY:
 <email body>`;
 
   try {
-    const text = await callLLM(prompt);
-    if (!text) return null;
+    const result = await callLLM(prompt);
+    if (!result) return null;
 
-    const subjectMatch = text.match(/SUBJECT:\s*(.+)/);
-    const bodyMatch = text.match(/BODY:\s*([\s\S]+)/);
+    const subjectMatch = result.text.match(/SUBJECT:\s*(.+)/);
+    const bodyMatch = result.text.match(/BODY:\s*([\s\S]+)/);
     if (!subjectMatch || !bodyMatch) return null;
 
-    return { subject: subjectMatch[1].trim(), body: bodyMatch[1].trim() };
+    return { subject: subjectMatch[1].trim(), body: bodyMatch[1].trim(), provider: result.provider };
   } catch (err) {
     console.warn(`[draft-emails] Template generation failed for group "${groupKey}": ${err.message}`);
     return null;
@@ -447,13 +450,17 @@ async function generateDraftsWithAI(config) {
 
   // Group and generate templates
   const groups = groupProspects(eligible);
-  const templateCache = new Map();
+  const templateCache = new Map();  // key → { subject, body, provider }
 
   if (provider) {
     console.log(`[draft-emails] Generating AI templates for ${groups.size} prospect group(s)...`);
     for (const [key, members] of groups) {
       const generated = await generateGroupTemplate(key, members, templates);
-      templateCache.set(key, generated || selectTemplate(templates, members[0]));
+      if (generated) {
+        templateCache.set(key, generated);  // includes provider from actual LLM call
+      } else {
+        templateCache.set(key, { ...selectTemplate(templates, members[0]), provider: null });
+      }
     }
   }
 
@@ -462,9 +469,9 @@ async function generateDraftsWithAI(config) {
   for (const prospect of eligible) {
     try {
       const key = getGroupKey(prospect);
-      const template = templateCache.has(key)
-        ? templateCache.get(key)
-        : selectTemplate(templates, prospect);
+      const cached = templateCache.get(key);
+      const template = cached || selectTemplate(templates, prospect);
+      const actualProvider = cached ? cached.provider : null;
 
       const merged = mergeDraft(template, prospect);
 
@@ -477,8 +484,8 @@ async function generateDraftsWithAI(config) {
         ti: prospect.ti,
         ind: prospect.ind || '',
         sig: prospect.sig || '',
-        grp: getGroupKey(prospect),
-        tpl: provider ? `AI:${provider}` : 'static',
+        grp: key,
+        tpl: actualProvider ? `AI:${actualProvider}` : 'static',
         subject: merged.subject,
         body: merged.body,
         ts: new Date().toISOString(),
@@ -497,7 +504,8 @@ async function generateDraftsWithAI(config) {
   if (!fs.existsSync(draftDir)) fs.mkdirSync(draftDir, { recursive: true });
   fs.writeFileSync(draftPlanPath, JSON.stringify(drafts, null, 2));
 
-  console.log(`[draft-emails] ${summary.drafted} drafts written (${provider ? `AI via ${provider}` : 'static templates'})`);
+  const usedProviders = [...new Set(drafts.map(d => d.tpl))].join(', ');
+  console.log(`[draft-emails] ${summary.drafted} drafts written (${usedProviders})`);
   return summary;
 }
 

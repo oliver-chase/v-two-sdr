@@ -1,10 +1,12 @@
 # Project: Oliver Chase AI SDR System
 
 ## Current State
-- **Phase:** 2 COMPLETE — Ready for first run (pending credentials setup)
+- **Phase:** 2 COMPLETE — Ready for first run (pending credential testing)
 - **Last Completed:** 2026-03-16
-- **Tests:** ✅ 288/288 passing | Coverage thresholds met
+- **Tests:** ✅ 338/338 passing | Coverage thresholds met
 - **Branch:** main
+- **GitHub Repo:** saturdaythings/v-two-sdr
+- **CI:** `.github/workflows/daily-sdr.yml` — runs 8AM ET weekdays
 
 ## What's Built (All Complete)
 
@@ -21,22 +23,59 @@
 
 ## What's Needed Before First Run
 
-Setup steps (user action required):
-1. ☐ Gmail App Password → `GMAIL_APP_PASSWORD` in `.env`
-2. ☐ Google Cloud service account JSON → `secrets/google-credentials.json`
-3. ☐ Google Sheet ID → `GOOGLE_SHEET_ID` in `.env`
-4. ☐ Anthropic API key → `ANTHROPIC_API_KEY` in `.env`
-5. ☐ Add prospects to `outreach/prospects.csv`
-6. ☐ Review templates in `outreach/templates.md`
+GitHub Secrets are set. Only credential testing remains — no new secrets to provision.
+
+**GitHub Secrets (already set):**
+- `GOOGLE_API_KEY` — Google Sheets read-only API key
+- `GOOGLE_SHEET_ID` — ID of "V.Two SDR - Master Lead Repository"
+- `OUTLOOK_PASSWORD` — oliver@vtwo.co Outlook password
+- `ANTHROPIC_API_KEY` — Note: account currently has no funds (see LLM Routing below)
+- `OPENROUTER_API_KEY` — OpenRouter paid tier (effective Tier 1)
+- `OPENROUTER_FREE_KEY` — OpenRouter free tier fallback
+
+**Remaining steps:**
+1. ☐ Copy secrets to local `.env` and run a test sync
+2. ☐ Add prospects to the Google Sheet (tab: "Leads")
+3. ☐ Review templates in `outreach/templates.md`
+4. ☐ Do a dry-run send to verify Outlook SMTP
 
 See `secrets/README.md` for step-by-step credential setup.
 See `.env.example` for all environment variables.
 
-## First Run Sequence (After Setup)
+## Email Configuration
+
+- **Provider:** Outlook / Microsoft 365
+- **Sender:** oliver@vtwo.co
+- **SMTP:** smtp.office365.com:587 (STARTTLS)
+- **IMAP:** outlook.office365.com:993 (TLS)
+- **BCC:** oliver@vtwo.co (on all outbound)
+
+## Google Sheets Configuration
+
+- **Auth:** API key (read-only) — no service account required
+- **Sheet:** "V.Two SDR - Master Lead Repository"
+- **Tab:** "Leads"
+- **Column Schema:**
+  Name, Title, Company, Email, Location, Timezone, LinkedIn, Company Size, Industry, Funding, Signal, Source, Status, Date Added, First Contact, Last Contact, Follow-Up Count, Next Follow-Up, Notes
+
+## LLM Routing (AI Drafting)
+
+3-tier fallback — system auto-routes based on availability:
+
+| Tier | Provider | Key | Status |
+|------|----------|-----|--------|
+| 1 | Anthropic Claude | `ANTHROPIC_API_KEY` | No funds — skipped |
+| 2 | OpenRouter paid | `OPENROUTER_API_KEY` | **Effective Tier 1** |
+| 3 | OpenRouter free | `OPENROUTER_FREE_KEY` | Fallback |
+| 4 | Static templates | — | Last resort |
+
+Anthropic account currently has no funds. OpenRouter paid is the effective first tier until Anthropic is recharged.
+
+## First Run Sequence (After Credential Testing)
 ```bash
 cp .env.example .env       # fill in credentials
-node scripts/validate-prospects.js   # check CSV format
-node scripts/sync-from-sheets.js     # optional: pull from Google Sheet
+node scripts/sync-from-sheets.js     # pull from Google Sheet ("Leads" tab)
+node scripts/validate-prospects.js   # check/validate prospect data
 node scripts/draft-emails.js         # generate drafts → outreach/draft-plan.json
 npm run approve                      # review drafts interactively
 npm run send:dry                     # dry-run to verify before real sends
@@ -50,15 +89,17 @@ node scripts/daily-run.js            # full orchestration: sync→draft→inbox�
 node scripts/daily-run.js --step=inbox  # just inbox check
 ```
 
+GitHub Actions (`daily-sdr.yml`) runs the full daily cycle at 8AM ET on weekdays automatically.
+
 ## Key Files
 
 **Scripts:**
 - `scripts/validate-prospects.js` — CSV → prospects.json validation
-- `scripts/sync-from-sheets.js` — Google Sheets sync
-- `scripts/draft-emails.js` — Draft generation
+- `scripts/sync-from-sheets.js` — Google Sheets sync (API key auth)
+- `scripts/draft-emails.js` — Draft generation (3-tier LLM fallback)
 - `scripts/approve-drafts.js` — Interactive approval CLI
-- `scripts/send-approved.js` — Send approved drafts
-- `scripts/inbox-monitor.js` — IMAP reply detection
+- `scripts/send-approved.js` — Send approved drafts via Outlook SMTP
+- `scripts/inbox-monitor.js` — IMAP reply detection (Outlook)
 - `scripts/daily-run.js` — Master orchestration
 
 **Data:**
@@ -75,6 +116,7 @@ node scripts/daily-run.js --step=inbox  # just inbox check
 - `outreach/templates.md` — Email templates A-E
 - `config.email.js` — Email config (reads from .env)
 - `config.sheets.js` — Sheets config (reads from .env)
+- `.github/workflows/daily-sdr.yml` — GitHub Actions daily run
 
 ## Dashboard Integration
 - `GET /sdr/metrics` — Pipeline health snapshot
@@ -83,4 +125,4 @@ node scripts/daily-run.js --step=inbox  # just inbox check
 
 ---
 **Last Updated:** 2026-03-16
-**Status:** ✅ Phase 2 Complete — Awaiting credential setup for first run
+**Status:** ✅ Phase 2 Complete — Credential testing + first run remaining
