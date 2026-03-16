@@ -265,18 +265,89 @@ function groupProspects(prospects) {
   return groups;
 }
 
+// ============================================================================
+// LLM PROVIDER FALLBACK CHAIN
+// Priority: Anthropic → OpenRouter paid → OpenRouter free → static templates
+// ============================================================================
+
+/* istanbul ignore next */
+async function _callAnthropic(prompt, apiKey) {
+  const response = await axios.post(
+    'https://api.anthropic.com/v1/messages',
+    { model: 'claude-haiku-4-5-20251001', max_tokens: 400, messages: [{ role: 'user', content: prompt }] },
+    { headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 15000 }
+  );
+  return response.data.content[0].text;
+}
+
+/* istanbul ignore next */
+async function _callOpenRouter(prompt, apiKey, model) {
+  const response = await axios.post(
+    'https://openrouter.ai/api/v1/chat/completions',
+    { model, max_tokens: 400, messages: [{ role: 'user', content: prompt }] },
+    { headers: { 'Authorization': `Bearer ${apiKey}`, 'content-type': 'application/json' }, timeout: 15000 }
+  );
+  return response.data.choices[0].message.content;
+}
+
 /**
- * Call Claude Haiku to generate a soft-custom email template for a prospect group.
- * Falls back to null (caller uses static template selection) if API call fails.
+ * Returns the active LLM provider name for logging.
+ * Checks env vars in priority order.
+ */
+function getLLMProvider() {
+  if (process.env.ANTHROPIC_API_KEY) return 'anthropic';
+  if (process.env.OPENROUTER_API_KEY) return 'openrouter-paid';
+  if (process.env.OPENROUTER_FREE_KEY) return 'openrouter-free';
+  return null;
+}
+
+/**
+ * Call LLM with 3-tier fallback. Returns response text or null.
+ * Logs which provider is active and warns on fallback.
+ */
+/* istanbul ignore next */
+async function callLLM(prompt) {
+  // Tier 1: Anthropic (fastest, best quality)
+  if (process.env.ANTHROPIC_API_KEY) {
+    try {
+      return await _callAnthropic(prompt, process.env.ANTHROPIC_API_KEY);
+    } catch (err) {
+      console.warn(`[llm] Anthropic failed (${err.message}) — trying OpenRouter paid...`);
+    }
+  }
+
+  // Tier 2: OpenRouter paid (claude-haiku or gpt-4o-mini)
+  if (process.env.OPENROUTER_API_KEY) {
+    try {
+      return await _callOpenRouter(prompt, process.env.OPENROUTER_API_KEY, 'openai/gpt-4o-mini');
+    } catch (err) {
+      console.warn(`[llm] OpenRouter paid failed (${err.message}) — trying OpenRouter free...`);
+    }
+  }
+
+  // Tier 3: OpenRouter free (slower, may queue)
+  if (process.env.OPENROUTER_FREE_KEY) {
+    try {
+      return await _callOpenRouter(prompt, process.env.OPENROUTER_FREE_KEY, 'meta-llama/llama-3.3-70b-instruct:free');
+    } catch (err) {
+      console.warn(`[llm] OpenRouter free failed (${err.message})`);
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Generate a soft-custom email template for a prospect group via LLM.
+ * Returns null if no provider is available or all calls fail.
  *
- * @param {string} groupKey     - Derived group key (titleLevel|industry|funding)
- * @param {Object[]} members    - Representative prospects for this group
- * @param {Object}  templates   - Existing templates (A-E) for tone reference
- * @param {string}  apiKey      - Anthropic API key
+ * @param {string}   groupKey  - Derived group key (titleLevel|industry|funding)
+ * @param {Object[]} members   - Prospects in this group
+ * @param {Object}   templates - Existing A-E templates for tone reference
  * @returns {Promise<{subject: string, body: string}|null>}
  */
 /* istanbul ignore next */
-async function generateGroupTemplate(groupKey, members, templates, apiKey) {
+async function generateGroupTemplate(groupKey, members, templates) {
   const sample = members[0];
   const [titleLevel, industry, funding] = groupKey.split('|');
 
@@ -313,35 +384,16 @@ BODY:
 <email body>`;
 
   try {
-    const response = await axios.post(
-      'https://api.anthropic.com/v1/messages',
-      {
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 400,
-        messages: [{ role: 'user', content: prompt }]
-      },
-      {
-        headers: {
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json'
-        },
-        timeout: 15000
-      }
-    );
+    const text = await callLLM(prompt);
+    if (!text) return null;
 
-    const text = response.data.content[0].text;
     const subjectMatch = text.match(/SUBJECT:\s*(.+)/);
     const bodyMatch = text.match(/BODY:\s*([\s\S]+)/);
-
     if (!subjectMatch || !bodyMatch) return null;
 
-    return {
-      subject: subjectMatch[1].trim(),
-      body: bodyMatch[1].trim()
-    };
+    return { subject: subjectMatch[1].trim(), body: bodyMatch[1].trim() };
   } catch (err) {
-    console.warn(`[draft-emails] AI template generation failed for group "${groupKey}": ${err.message}`);
+    console.warn(`[draft-emails] Template generation failed for group "${groupKey}": ${err.message}`);
     return null;
   }
 }
@@ -360,7 +412,16 @@ BODY:
 /* istanbul ignore next */
 async function generateDraftsWithAI(config) {
   const { templatesPath, prospectsPath, optOutsPath, draftPlanPath } = config.paths;
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const provider = getLLMProvider();
+
+  // Warn clearly if no AI provider is configured
+  if (!provider) {
+    console.warn('\n⚠️  No LLM API key found. Falling back to static templates.');
+    console.warn('   Set one of: ANTHROPIC_API_KEY, OPENROUTER_API_KEY, or OPENROUTER_FREE_KEY\n');
+  } else {
+    const tierLabels = { anthropic: '1 (Anthropic)', 'openrouter-paid': '2 (OpenRouter paid)', 'openrouter-free': '3 (OpenRouter free)' };
+    console.log(`[draft-emails] Using LLM provider: ${provider} (Tier ${tierLabels[provider] || provider})`);
+  }
 
   const summary = { total: 0, drafted: 0, skipped_optout: 0, skipped_no_email: 0, errors: 0 };
 
@@ -388,10 +449,10 @@ async function generateDraftsWithAI(config) {
   const groups = groupProspects(eligible);
   const templateCache = new Map();
 
-  if (apiKey) {
+  if (provider) {
     console.log(`[draft-emails] Generating AI templates for ${groups.size} prospect group(s)...`);
     for (const [key, members] of groups) {
-      const generated = await generateGroupTemplate(key, members, templates, apiKey);
+      const generated = await generateGroupTemplate(key, members, templates);
       templateCache.set(key, generated || selectTemplate(templates, members[0]));
     }
   }
@@ -417,7 +478,7 @@ async function generateDraftsWithAI(config) {
         ind: prospect.ind || '',
         sig: prospect.sig || '',
         grp: getGroupKey(prospect),
-        tpl: apiKey ? 'AI' : 'static',
+        tpl: provider ? `AI:${provider}` : 'static',
         subject: merged.subject,
         body: merged.body,
         ts: new Date().toISOString(),
@@ -436,7 +497,7 @@ async function generateDraftsWithAI(config) {
   if (!fs.existsSync(draftDir)) fs.mkdirSync(draftDir, { recursive: true });
   fs.writeFileSync(draftPlanPath, JSON.stringify(drafts, null, 2));
 
-  console.log(`[draft-emails] ${summary.drafted} drafts written (${apiKey ? 'AI-generated' : 'static templates'})`);
+  console.log(`[draft-emails] ${summary.drafted} drafts written (${provider ? `AI via ${provider}` : 'static templates'})`);
   return summary;
 }
 
@@ -450,6 +511,7 @@ module.exports = {
   mergeDraft,
   generateDrafts,
   generateDraftsWithAI,
+  getLLMProvider,
   // Exposed for testing
   classifyTitle,
   classifyFunding,

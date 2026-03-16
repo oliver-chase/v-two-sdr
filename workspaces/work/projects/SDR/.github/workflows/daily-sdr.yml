@@ -32,9 +32,18 @@ jobs:
           GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_FREE_KEY: ${{ secrets.OPENROUTER_FREE_KEY }}
           BCC_EMAIL: oliver@vtwo.co
           SENDER_NAME: Oliver Chase
           MAX_DAILY_SENDS: 15
           SEND_DELAY_MS: 30000
           GOOGLE_SHEET_NAME: Leads
         run: node scripts/daily-run.js
+
+      - name: Run inbox check
+        working-directory: workspaces/work/projects/SDR
+        env:
+          OUTLOOK_USER: oliver@vtwo.co
+          OUTLOOK_PASSWORD: ${{ secrets.OUTLOOK_PASSWORD }}
+        run: node scripts/inbox-monitor.js || echo "Inbox check completed"
