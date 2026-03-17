@@ -31,6 +31,20 @@
 3. Add to Google Sheet
 4. Notify Kiana in Telegram: "Added N prospects — ready for tomorrow's run"
 
+## Web Search
+
+OpenClaw uses Serper (not Brave) for all web search in this project.
+SERPER_API_KEY is configured in the environment.
+
+To search, make a POST request:
+- URL: https://google.serper.dev/search
+- Header: X-API-KEY: [value of SERPER_API_KEY env var]
+- Body: {"q": "your search query", "num": 5}
+
+Use this for all prospect research, email pattern discovery,
+and company enrichment. Follow OPENCLAW_EMAIL_RESEARCH_STRATEGY.md
+for research process.
+
 ## Reading Script Output
 
 All scripts print structured [SDR] prefixed lines to stdout. Read these to understand what happened. Errors go to stderr — if a script exits 1, alert Kiana in Telegram with the error message before stopping.
