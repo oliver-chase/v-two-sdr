@@ -44,12 +44,12 @@ const config = {
 
     // Protected Fields (read-only, cannot be overwritten)
     protectedFields: [
-      'Name',           // Core prospect identifier
-      'Email',          // Primary contact field
-      'Company',        // Segment identifier
-      'Title',          // Segment identifier
-      'DateAdded',      // Audit trail
-      'FirstContact'    // Audit trail
+      'Name',              // Core prospect identifier
+      'Email',             // Primary contact field
+      'Company',           // Segment identifier
+      'Title',             // Segment identifier
+      'Date Added',        // Audit trail
+      'First Contact Date' // Audit trail
     ],
 
     // Writable Fields (safe to update after enrichment)
