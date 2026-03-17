@@ -17,6 +17,12 @@
  * - Output: prospects with em, confidence, signals
  * - Used by: Chunk 4 (state machine), Chunk 5 (email drafting)
  *
+ * Email Discovery Strategy (Zero API Cost):
+ * - OpenClaw researches company email patterns via web_search
+ * - System generates 7 candidates ranked by likelihood
+ * - MX validation confirms domain is real
+ * - NO upfront API verification — only if emails bounce (pay-as-you-go)
+ *
  * Tech: Node.js, dns module, web_search + web_fetch (OpenClaw), Jest
  */
 
@@ -444,40 +450,48 @@ async function enrichProspect(prospect, cache = null) {
   // Step 5: Calculate confidence score (before Hunter verification)
   enriched.confidence = calculateDeliverabilityScore(signals);
 
-  // Step 5b: Hunter.io email verification for borderline candidates (score 0.5-0.8)
-  // Skip high-confidence candidates (>= 0.9) and low-confidence (< 0.5)
-  // Only verify if we have an email and score is in borderline range
-  if (enriched.em && enriched.confidence >= 0.5 && enriched.confidence < 0.9) {
-    try {
-      const verification = await hunterVerifier.verifyEmail(enriched.em);
-      if (verification.success && verification.status) {
-        enriched.hunterVerification = {
-          status: verification.status,
-          result: verification.result,
-          score: verification.score,
-          verifiedAt: verification.verifiedAt
-        };
-
-        // Boost confidence for 'valid' or increase penalty for 'invalid'
-        if (verification.status === 'valid') {
-          signals.hunterVerified = true;
-          enriched.confidence = Math.min(enriched.confidence + 0.15, 1.0);
-        } else if (verification.status === 'invalid') {
-          signals.hunterInvalid = true;
-          enriched.confidence = Math.max(enriched.confidence - 0.2, 0.0);
-        } else if (verification.status === 'valid_catchall') {
-          signals.hunterCatchall = true;
-          enriched.confidence = Math.max(enriched.confidence - 0.1, 0.0);
-        }
-      } else if (verification.error) {
-        // Log but don't fail - use pattern + MX score as fallback
-        enriched.hunterVerificationError = verification.error;
-      }
-    } catch (error) {
-      // Log error but continue - enrichment shouldn't fail due to Hunter API issues
-      console.warn(`[enrichment-engine] Hunter verification error for ${enriched.em}: ${error.message}`);
-    }
-  }
+  // Step 5b: Hunter.io email verification (DISABLED — Pay-as-you-go model)
+  //
+  // Zero-cost strategy:
+  // - OpenClaw researches company email patterns via web_search
+  // - System generates candidates based on discovered patterns
+  // - Verification only happens on send failures (bounce handling)
+  // - See: scripts/mailer.js bounce_handler for retry logic
+  //
+  // If Hunter verification needed in future:
+  // 1. Set HUNTER_IO_API_KEY in GitHub Secrets
+  // 2. Uncomment code below
+  // 3. Only verify borderline candidates (0.5-0.8 confidence)
+  //
+  // Current: Disabled (saves ~$49/month)
+  //
+  // if (enriched.em && enriched.confidence >= 0.5 && enriched.confidence < 0.9) {
+  //   try {
+  //     const verification = await hunterVerifier.verifyEmail(enriched.em);
+  //     if (verification.success && verification.status) {
+  //       enriched.hunterVerification = {
+  //         status: verification.status,
+  //         result: verification.result,
+  //         score: verification.score,
+  //         verifiedAt: verification.verifiedAt
+  //       };
+  //       if (verification.status === 'valid') {
+  //         signals.hunterVerified = true;
+  //         enriched.confidence = Math.min(enriched.confidence + 0.15, 1.0);
+  //       } else if (verification.status === 'invalid') {
+  //         signals.hunterInvalid = true;
+  //         enriched.confidence = Math.max(enriched.confidence - 0.2, 0.0);
+  //       } else if (verification.status === 'valid_catchall') {
+  //         signals.hunterCatchall = true;
+  //         enriched.confidence = Math.max(enriched.confidence - 0.1, 0.0);
+  //       }
+  //     } else if (verification.error) {
+  //       enriched.hunterVerificationError = verification.error;
+  //     }
+  //   } catch (error) {
+  //     console.warn(`[enrichment-engine] Hunter verification error for ${enriched.em}: ${error.message}`);
+  //   }
+  // }
 
   // Step 6: Determine action based on confidence
   enriched.confidenceAction = confidenceThresholds(enriched);

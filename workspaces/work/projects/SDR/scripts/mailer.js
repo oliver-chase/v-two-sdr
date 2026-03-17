@@ -7,6 +7,18 @@
  * - Enforce daily limits and per-send delay
  * - Log every send to outreach/sends.json (TOON format)
  * - Return structured result for state machine
+ *
+ * Email Verification Strategy (Pay-as-you-go):
+ * - No upfront API verification (saves $49+/month)
+ * - OpenClaw researches email patterns via web_search
+ * - System sends to best candidate based on pattern + confidence
+ * - On bounce: Implement bounce_handler (Phase 3) to:
+ *   1. Detect bounce response from Graph API
+ *   2. Call Hunter.io/Abstract to verify alternatives
+ *   3. Retry with verified email
+ *   4. Update Google Sheet with correct email
+ *
+ * Currently: sends.json logs success/failure, bounce handling in Phase 3
  */
 
 const { OAuthClient } = require('./oauth-client');
