@@ -169,5 +169,30 @@ curl http://localhost:18790/health
 
 ---
 
-**Last updated:** 2026-03-09
+## Current State (as of 2026-03-17)
+
+**⚠️ IMPORTANT UPDATE:** The proxy documented above still runs but **OpenClaw no longer routes through it for authentication.**
+
+Instead, OpenClaw reads keys directly from:
+```
+~/.openclaw/agents/main/agent/auth-profiles.json
+```
+
+**Current configuration:**
+- Active profile: `openrouter:default`
+- Provider: OpenRouter (or-free key)
+- Default model: `openrouter/auto`
+- Anthropic: NOT currently configured (no credits available; to restore: run `openclaw agents add main` and select Anthropic)
+
+**Why the change:** Direct file-based auth is simpler and faster than proxying. The proxy still runs on `localhost:18790` and may be used in future, but OpenClaw bypasses it entirely for API calls.
+
+**Key implications:**
+- Kiana can still read keys from auth-profiles.json (plaintext)
+- OpenClaw agents call OpenRouter directly (not through proxy)
+- Proxy health checks are no longer needed for normal OpenClaw operation
+- Proxy remains available if Claude Code or other agents need it
+
+---
+
+**Last updated:** 2026-03-09 (proxy architecture) | **Updated 2026-03-17:** OpenClaw auth now uses auth-profiles.json directly
 **Created for:** All agents (Claude Code, OpenClaw, future agents) to understand and coach Kiana through key access.

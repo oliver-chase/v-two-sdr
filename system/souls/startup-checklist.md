@@ -90,6 +90,17 @@ This is the map. Don't read everything — use it to find what you need.
 
 ---
 
+## Phase 7: OpenClaw Startup Verification (If Using OpenClaw)
+
+```
+□ Gateway health check: verify openclaw channels status shows 'Gateway reachable'
+  └─ If healthy: proceed with normal startup
+  └─ If down: run: gw restart (alias for: openclaw gateway restart)
+  └─ If crashes on start: check ~/.openclaw/logs/gateway.err.log for root cause
+```
+
+---
+
 ## When You Have Questions
 
 1. **"How do I...?"** → Check the relevant SKILL.md in skills/

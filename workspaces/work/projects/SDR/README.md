@@ -1,6 +1,6 @@
 # Oliver Chase SDR System
 
-**Status:** Phase 1 Chunk 2 Complete ✅ | **Infrastructure:** Ready
+**Status:** Phase 2 Complete ✅ | **Infrastructure:** Shipped & Ready for Production
 
 Sales Development Representative system with Google Sheets integration, prospect enrichment, email drafting, and analytics.
 
@@ -13,13 +13,13 @@ Sales Development Representative system with Google Sheets integration, prospect
 npm install
 ```
 
-### 2. Set Up Google Cloud (15 minutes)
-Follow: `docs/GOOGLE_CLOUD_SETUP.md`
+### 2. Configure Environment Variables
+See: `CURRENT_STATE.md` for complete environment setup
 
 ```bash
-# Download credentials from Google Cloud Console
-# Place in: secrets/google-code-credentials.json
-# Update: config.sheets.js with sheet ID
+# GitHub Secrets are already configured for GitHub Actions
+# For local testing, create .env with values from .env.example
+# Required: 12 secrets (Outlook, Google, APIs, LLM providers)
 ```
 
 ### 3. Run Sync
@@ -37,16 +37,21 @@ cat prospects.json
 
 ## Architecture
 
-### Current Phase (1/3)
+### Current Phase (2/3) — Phase 2 Complete
 
-**Chunk 1:** ✅ Validation & prospects.json
-**Chunk 2:** ✅ Google Sheets Integration (complete)
-**Chunk 3:** 📋 Enrichment Engine
-**Chunk 4:** 📋 State Machine
-**Chunk 5:** 📋 Email Drafting
-**Chunk 6:** 📋 Inbox Handling
-**Chunk 7:** 📋 Command Interface
-**Chunk 8:** 📋 Analytics & Dashboard
+**Phase 1 (Foundation):** ✅ Mar 11-17
+- Chunk 1: ✅ Cleanup & file reorganization
+- Chunk 2: ✅ Google Sheets integration
+- Chunk 3: ✅ Enrichment engine (email validation, web search)
+- Chunk 4: ✅ Lead state machine
+
+**Phase 2 (Execution + Intelligence):** ✅ Mar 16 (Complete)
+- Chunk 5: ✅ Email drafting + approval workflow
+- Chunk 6: ✅ Inbox monitoring + reply classification
+- Chunk 7: ✅ CLI & daily orchestration
+
+**Phase 3 (Analytics):** 📋 In Progress
+- Chunk 8: 📋 Event logging, metrics, dashboard
 
 ### Data Flow
 
