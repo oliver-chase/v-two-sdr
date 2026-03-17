@@ -1,0 +1,281 @@
+================================================================================
+                    OPENCLAW ORCHESTRATION DESIGN
+                        Complete & Ready
+================================================================================
+
+DATE: 2026-03-16
+STATUS: Design Complete (No Code Yet)
+TOTAL CONTENT: 3,825 lines across 7 documents
+
+================================================================================
+                            WHAT YOU HAVE
+================================================================================
+
+A complete design specification for the OpenClaw agent that will automate
+your daily B2B cold outreach pipeline. This is design-only (pseudocode + prose)
+and ready for hand-off to implementation.
+
+================================================================================
+                        7 DESIGN DOCUMENTS
+================================================================================
+
+All files located: /Users/oliver/OliverRepo/workspaces/work/projects/SDR/docs/
+
+1. INDEX_ORCHESTRATION_DESIGN.md (13 KB)
+   START HERE. Master index of all 6 design docs.
+   → Read: 10 minutes
+   → For: Everyone (overview)
+
+2. OPENCLAW_BLUEPRINT.md (9.5 KB)
+   One-page quick reference for Oliver (SDR Director).
+   → Read: 10 minutes
+   → For: Oliver (print and keep at desk)
+   → Includes: Daily checklist, key concepts, decision templates
+
+3. ORCHESTRATION_DESIGN_SUMMARY.md (17 KB)
+   System overview, how pieces fit together, roadmap, error handling.
+   → Read: 15 minutes
+   → For: Implementation lead, Oliver
+   → Includes: Design decisions, data flow, phases, hand-off checklist
+
+4. OPENCLAW_SYSTEM_PROMPT.md (28 KB)
+   Complete system prompt with 13-step daily pipeline.
+   → Read: 30 minutes
+   → For: LLM engineers, implementation team
+   → Includes: Full pseudocode for all 13 steps, constraints, safety rules
+
+5. FOLLOWUP_LOGIC.md (18 KB)
+   Deterministic follow-up calculation and send scheduling.
+   → Read: 20 minutes
+   → For: Backend engineers (state machine, scheduling)
+   → Includes: Pseudocode, 4 detailed examples, pausing rules
+
+6. ENRICHMENT_CHECKLIST.md (19 KB)
+   Field-by-field enrichment rules and validation procedures.
+   → Read: 25 minutes
+   → For: Data engineers, enrichment developers
+   → Includes: Email validation, timezone lookup, confidence scoring framework
+
+7. TELEGRAM_DIGEST_FORMAT.md (13 KB)
+   Exact templates for all Telegram messages sent to you.
+   → Read: 20 minutes
+   → For: Telegram integration engineers, Kiana (SDR)
+   → Includes: Morning check-in, daily digest, action prompts, emoji legend
+
+================================================================================
+                        READING ORDER BY ROLE
+================================================================================
+
+IF YOU'RE OLIVER (SDR Director):
+  1. INDEX_ORCHESTRATION_DESIGN.md (2 min overview)
+  2. OPENCLAW_BLUEPRINT.md (10 min) — PRINT THIS
+  3. That's it. You're done.
+
+IF YOU'RE IMPLEMENTATION LEAD:
+  1. INDEX_ORCHESTRATION_DESIGN.md (2 min)
+  2. ORCHESTRATION_DESIGN_SUMMARY.md (15 min)
+  3. OPENCLAW_SYSTEM_PROMPT.md (30 min)
+  4. Then delegate specific docs to team members
+
+IF YOU'RE IMPLEMENTING COMPONENTS:
+  - State Machine/Scheduling: FOLLOWUP_LOGIC.md
+  - Enrichment Engine: ENRICHMENT_CHECKLIST.md
+  - Telegram Notifications: TELEGRAM_DIGEST_FORMAT.md
+  - Core Pipeline: OPENCLAW_SYSTEM_PROMPT.md
+
+================================================================================
+                        KEY DESIGN CONCEPTS
+================================================================================
+
+FOLLOW-UP SPACING (Deterministic):
+  First contact: Mar 10
+  Follow-up 1: Mar 14 (+4 days)
+  Follow-up 2: Mar 18 (+8 days)
+  Follow-up 3: Mar 24 (+14 days)
+  Follow-up 4: Mar 31 (+21 days)
+  Follow-up 5: Apr 9 (+30 days)
+  → All relative to FIRST contact date (not last send date)
+
+SEND WINDOWS:
+  → Only Tue/Wed/Thu
+  → Only 9–11 AM or 1–3 PM
+  → All times in prospect's LOCAL timezone
+  → If today is Mon/Fri/weekend, defer to next eligible day
+
+CONFIDENCE SCORING:
+  → 0.8–1.0: Auto-use (write to Sheet, proceed to draft)
+  → 0.5–0.79: Flag for user review (wait for confirmation)
+  → <0.5: Skip (don't write to Sheet)
+
+APPROVAL GATES:
+  → Every draft needs [APPROVE] / [REGEN] / [SKIP] button click
+  → Never send without explicit approval
+  → Never flag/use data below confidence 0.8
+
+================================================================================
+                        HOW THE PIPELINE WORKS
+================================================================================
+
+Every day at 8 AM ET (Mon-Fri):
+
+STEP 1-2 (7 min):      Health check + sync from Google Sheet
+STEP 3 (10-15 min):    Enrich missing email/timezone/company info
+STEP 4 (2 min):        Load knowledge base documents
+STEP 5-6 (10 min):     Generate drafts + queue for approval
+STEP 7-8 (10 min):     Scan inbox + classify replies
+STEP 9-12 (5 min):     Log events + metrics + alerts + write back
+STEP 13 (2 min):       Prompt for pending actions
+
+TOTAL: ~1 hour
+USER TIME: 2–5 minutes (just click buttons)
+
+================================================================================
+                    YOUR DAILY CHECKLIST (FROM BLUEPRINT)
+================================================================================
+
+☐ 8:00 AM  — Receive morning check-in. Verify systems OK.
+☐ 8:15 AM  — Approve 8–12 drafts as they arrive in Telegram
+☐ 9:30 AM  — Read daily digest. Note any actions.
+☐ 9:30 AM  — Classify any unclear replies (if prompted)
+☐ 9:30 AM  — Check pool status. If < 30 active, add prospects.
+☐ EOD      — Optional: review 7-day metrics
+
+Time commitment: 3–5 minutes daily
+
+================================================================================
+                        DESIGN HIGHLIGHTS
+================================================================================
+
+DETERMINISTIC (No Randomness):
+  ✓ Same follow-up spacing every time
+  ✓ Same send windows (Tue/Wed/Thu, 9–11 AM / 1–3 PM)
+  ✓ Same logic every day, no ML surprises
+
+SAFE (Multiple Gates):
+  ✓ Never send without approval ([APPROVE] button)
+  ✓ Always validate data (confidence < 0.8 = flag)
+  ✓ Always respect opt-outs (auto-pause sequence)
+  ✓ Always flag uncertainty ("?" prefix in Notes)
+
+TRANSPARENT (You Know What's Happening):
+  ✓ Daily Telegram digest shows exactly what happened
+  ✓ Real-time prompts tell you when decisions are needed
+  ✓ All calculations are deterministic (no black box)
+
+EFFICIENT (Minimal User Input):
+  ✓ Draft approvals: just click [APPROVE] / [REGEN] / [SKIP]
+  ✓ Reply classifications: auto-classified if confidence ≥ 0.8
+  ✓ Email confirmations: click [CONFIRM] if score 0.5–0.79
+  ✓ Pool alerts: add prospects when prompted
+
+================================================================================
+                    CRITICAL DESIGN DECISIONS
+================================================================================
+
+1. Fixed spacing from first contact (not from last send)
+   → Predictable, no edge cases, easy to explain
+
+2. Tue/Wed/Thu only, 9–11 AM / 1–3 PM
+   → Empirically best for cold email open rates
+
+3. Confidence ≥ 0.8 for auto-use threshold
+   → Balances automation with safety
+
+4. One approval per draft
+   → Prevents hallucinated claims, ensures brand voice
+
+5. LLM-classified replies with user gate on low confidence
+   → Automates obvious replies, asks user on ambiguous ones
+
+6. Free APIs only (Hunter, Never Bounce, Abstract)
+   → No vendor lock-in, low cost
+
+================================================================================
+                        SUCCESS METRICS
+================================================================================
+
+Monitor these weekly:
+
+Emails sent/day         → Target: 10–20
+Reply rate              → Target: 5–10%
+Enrichment success      → Target: 80%+
+Email confidence (avg)  → Target: ≥ 0.85
+Opt-out rate            → Target: < 2%
+Approval rate           → Target: 90%+
+Pool health (active)    → Target: 30+
+Days of runway          → Target: 15+
+
+================================================================================
+                        WHAT'S NOT INCLUDED
+================================================================================
+
+This design covers the CORE daily pipeline:
+  Enrich → Draft → Approve → Schedule → Send → Monitor → Report
+
+OUT OF SCOPE (Phase 4+ features):
+  • Lead scoring / prioritization
+  • Predictive best send time
+  • Auto-reply drafting
+  • Multi-variant A/B testing
+  • Calendly integration
+  • Advanced analytics dashboards
+
+================================================================================
+                        NEXT STEPS
+================================================================================
+
+FOR OLIVER:
+  1. Read INDEX_ORCHESTRATION_DESIGN.md (2 min)
+  2. Read OPENCLAW_BLUEPRINT.md (10 min)
+  3. Print OPENCLAW_BLUEPRINT.md, keep at desk
+  4. Done. Wait for implementation team.
+
+FOR IMPLEMENTATION LEAD:
+  1. Read INDEX_ORCHESTRATION_DESIGN.md (2 min)
+  2. Read ORCHESTRATION_DESIGN_SUMMARY.md (15 min)
+  3. Plan your sprints (3 phases: plumbing, integration, orchestration)
+  4. Delegate specific docs to team members
+  5. Begin implementation using these designs as spec
+
+FOR ALL DEVELOPERS:
+  1. Read your specific document (15–30 min)
+  2. Use pseudocode as specification
+  3. Implement functions matching the logic
+  4. Test against edge cases in each doc
+
+================================================================================
+                            THE BOTTOM LINE
+================================================================================
+
+You have a COMPLETE design for the OpenClaw orchestration agent:
+  • 13-step daily pipeline (documented in pseudocode)
+  • Follow-up calculation and scheduling logic (with examples)
+  • Data enrichment rules and confidence scoring
+  • Exact Telegram message templates
+  • Error handling and edge cases
+  • Success metrics and troubleshooting guide
+
+This is design-only. NO CODE YET. Ready for implementation team to build from.
+
+================================================================================
+                        FILE LOCATIONS
+================================================================================
+
+All files in: /Users/oliver/OliverRepo/workspaces/work/projects/SDR/docs/
+
+  • INDEX_ORCHESTRATION_DESIGN.md (START HERE)
+  • OPENCLAW_BLUEPRINT.md (for Oliver)
+  • ORCHESTRATION_DESIGN_SUMMARY.md (for implementation lead)
+  • OPENCLAW_SYSTEM_PROMPT.md (for LLM engineers)
+  • FOLLOWUP_LOGIC.md (for backend engineers)
+  • ENRICHMENT_CHECKLIST.md (for data engineers)
+  • TELEGRAM_DIGEST_FORMAT.md (for Telegram integration)
+
+================================================================================
+
+Prepared by: Claude Code (Architecture & Design)
+Date: 2026-03-16
+Status: Design Complete — Ready for Implementation
+Next Phase: Hand off to development team
+
+================================================================================

@@ -5,17 +5,34 @@
 
 const fs = require('fs');
 const path = require('path');
+
+const mockSendMailWithRetry = jest.fn().mockResolvedValue({ messageId: 'msg-123' });
+
+jest.mock('../scripts/oauth-client', () => ({
+  OAuthClient: jest.fn().mockImplementation(() => ({
+    sendMailWithRetry: mockSendMailWithRetry
+  }))
+}));
+
 const { Mailer, mergeTemplate, countTodaySends } = require('../scripts/mailer');
+const { OAuthClient } = require('../scripts/oauth-client');
 
 // ============================================================================
 // FIXTURES
 // ============================================================================
 
 const MOCK_CONFIG = {
-  smtp: { host: 'smtp.gmail.com', port: 465, secure: true, user: 'test@vtwo.co', pass: 'testpass' },
   sender: { name: 'Oliver Chase', email: 'test@vtwo.co', bcc: 'bcc@vtwo.co' },
   limits: { maxDaily: 3, delayMs: 0 },
   paths: { sendsLog: '__tests__/fixtures/sends-test.json', optOuts: 'outreach/opt-outs.json' }
+};
+
+const MOCK_OAUTH_CONFIG = {
+  azure: {
+    tenantId: 'test-tenant',
+    clientId: 'test-client',
+    clientSecret: 'test-secret'
+  }
 };
 
 const MOCK_PROSPECT = { id: 'p-000001', fn: 'Sarah', ln: 'Chen', em: 'sarah@tech.io', co: 'TechCo', ti: 'CTO' };
@@ -84,13 +101,11 @@ describe('countTodaySends', () => {
 
 describe('Mailer.send', () => {
   let mailer;
-  let mockSendMail;
 
   beforeEach(() => {
-    mailer = new Mailer(MOCK_CONFIG);
-    mockSendMail = jest.fn().mockResolvedValue({ messageId: 'msg-123' });
-    mailer.transporter = { sendMail: mockSendMail };
-    mailer.connect = jest.fn(); // skip actual SMTP connect
+    jest.clearAllMocks();
+    mockSendMailWithRetry.mockResolvedValue({ messageId: 'msg-123' });
+    mailer = new Mailer(MOCK_CONFIG, MOCK_OAUTH_CONFIG);
   });
 
   test('sends email and returns success result', async () => {
@@ -102,15 +117,15 @@ describe('Mailer.send', () => {
 
     expect(result.ok).toBe(true);
     expect(result.messageId).toBe('msg-123');
-    expect(mockSendMail).toHaveBeenCalledTimes(1);
+    expect(mockSendMailWithRetry).toHaveBeenCalledTimes(1);
   });
 
   test('includes BCC in mail options', async () => {
     await mailer.send({ prospect: MOCK_PROSPECT, subject: 'Test', body: 'Body' });
 
-    const callArgs = mockSendMail.mock.calls[0][0];
-    expect(callArgs.bcc).toBe('bcc@vtwo.co');
-    expect(callArgs.to).toBe('sarah@tech.io');
+    const callArgs = mockSendMailWithRetry.mock.calls[0];
+    expect(callArgs[3]).toBe('bcc@vtwo.co'); // BCC is 4th arg
+    expect(callArgs[1]).toBe('sarah@tech.io'); // TO is 2nd arg
   });
 
   test('logs send to sends.json on success', async () => {
@@ -123,12 +138,12 @@ describe('Mailer.send', () => {
   });
 
   test('logs failed send and returns error result', async () => {
-    mockSendMail.mockRejectedValue(new Error('Connection refused'));
+    mockSendMailWithRetry.mockRejectedValueOnce(new Error('Graph API error'));
 
     const result = await mailer.send({ prospect: MOCK_PROSPECT, subject: 'Test', body: 'Body' });
 
     expect(result.ok).toBe(false);
-    expect(result.error).toContain('Connection refused');
+    expect(result.error).toContain('Graph API error');
 
     const sends = JSON.parse(fs.readFileSync(SENDS_LOG, 'utf8'));
     expect(sends[0].ok).toBe(false);
@@ -146,16 +161,11 @@ describe('Mailer.send', () => {
 
     expect(result.ok).toBe(false);
     expect(result.error).toContain('Daily limit');
-    expect(mockSendMail).not.toHaveBeenCalled();
+    expect(mockSendMailWithRetry).not.toHaveBeenCalled();
   });
 
-  test('throws if credentials not configured', () => {
-    const unconfiguredMailer = new Mailer({
-      ...MOCK_CONFIG,
-      smtp: { ...MOCK_CONFIG.smtp, user: undefined, pass: undefined }
-    });
-
-    expect(() => unconfiguredMailer.connect()).toThrow('OUTLOOK_USER and OUTLOOK_PASSWORD');
+  test('throws if OAuth config not provided', () => {
+    expect(() => new Mailer(MOCK_CONFIG)).toThrow('OAuth config');
   });
 });
 
@@ -165,13 +175,11 @@ describe('Mailer.send', () => {
 
 describe('Mailer.sendBatch', () => {
   let mailer;
-  let mockSendMail;
 
   beforeEach(() => {
-    mailer = new Mailer(MOCK_CONFIG);
-    mockSendMail = jest.fn().mockResolvedValue({ messageId: 'msg-ok' });
-    mailer.transporter = { sendMail: mockSendMail };
-    mailer.connect = jest.fn();
+    jest.clearAllMocks();
+    mockSendMailWithRetry.mockResolvedValue({ messageId: 'msg-ok' });
+    mailer = new Mailer(MOCK_CONFIG, MOCK_OAUTH_CONFIG);
   });
 
   test('sends all emails and returns results array', async () => {

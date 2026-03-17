@@ -40,7 +40,8 @@ async function sendApproved() {
   }
 
   const config = require('../config.email');
-  const mailer = new Mailer(config);
+  const oauthConfig = require('../config/config.oauth');
+  const mailer = new Mailer(config, oauthConfig);
   await mailer.verify();
 
   const emails = pending.map(draft => ({

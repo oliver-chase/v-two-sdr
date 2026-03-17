@@ -13,6 +13,7 @@
  */
 
 const { GoogleSpreadsheet } = require('google-spreadsheet');
+const { JWT } = require('google-auth-library');
 const fs = require('fs');
 const {
   parseSheetRow,
@@ -28,7 +29,7 @@ const {
 // ============================================================================
 
 class GoogleSheetsConnector {
-  constructor(config) {
+  constructor(config, authMode = 'read') {
     // Validate config
     if (!config.google_sheets?.sheet_id) {
       throw new Error('Config must include google_sheets.sheet_id');
@@ -41,11 +42,21 @@ class GoogleSheetsConnector {
     this.sheetName = config.google_sheets.sheet_name;
     this.templatesSheetName = config.google_sheets.templates_sheet || 'Templates';
     this.optOutsSheetName = config.google_sheets.optouts_sheet || 'OptOuts';
+    this.authMode = authMode; // 'read' or 'write'
+
+    // Read-mode config (API key)
     this.apiKey = config.google_sheets.api_key || process.env.GOOGLE_API_KEY || '';
+
+    // Write-mode config (service account)
+    this.serviceAccountEmail = config.google_sheets?.service_account_email || process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || '';
+    this.privateKey = config.google_sheets?.private_key || process.env.GOOGLE_PRIVATE_KEY || '';
+    this.protectedFields = config.google_sheets?.protected_fields || [];
+    this.writableFields = config.google_sheets?.writable_fields || [];
 
     // Initialize API client
     this.doc = null;
     this.authenticated = false;
+    this.authClient = null;
 
     // Cache & rate limiting
     this.schema = null;
@@ -55,12 +66,20 @@ class GoogleSheetsConnector {
   }
 
   /**
-   * Authenticate with Google Sheets API using API key (read-only).
-   * The sheet must be shared: "Anyone with the link can view".
+   * Authenticate with Google Sheets API.
    *
-   * @param {string} [apiKey] - Override the key from config/env
+   * Two modes:
+   * - 'read' (default): Uses API key (public sheets)
+   * - 'write': Uses service account OAuth (private sheets with write access)
+   *
+   * @param {string} [apiKey] - Override the key from config/env (read mode only)
    */
   async authenticate(apiKey) {
+    if (this.authMode === 'write') {
+      return this._authenticateServiceAccount();
+    }
+
+    // Read-mode authentication (API key)
     const key = apiKey || this.apiKey;
 
     if (!key) {
@@ -75,6 +94,43 @@ class GoogleSheetsConnector {
       return true;
     } catch (error) {
       throw new Error(`Google Sheets authentication failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Authenticate with Google Sheets API using service account (write access).
+   * Uses JWT-based OAuth with google-auth-library.
+   *
+   * @private
+   * @returns {Promise<boolean>}
+   */
+  async _authenticateServiceAccount() {
+    if (!this.serviceAccountEmail || !this.privateKey) {
+      throw new Error(
+        'Service account authentication required: GOOGLE_SERVICE_ACCOUNT_EMAIL and GOOGLE_PRIVATE_KEY must be set'
+      );
+    }
+
+    try {
+      // Create JWT auth client
+      this.authClient = new JWT({
+        email: this.serviceAccountEmail,
+        key: this.privateKey,
+        scopes: [
+          'https://www.googleapis.com/auth/spreadsheets'
+        ]
+      });
+
+      // Initialize GoogleSpreadsheet with service account auth
+      this.doc = new GoogleSpreadsheet(this.sheetId);
+      this.doc.useServiceAccountAuth(this.authClient);
+
+      await this.doc.loadInfo();
+
+      this.authenticated = true;
+      return true;
+    } catch (error) {
+      throw new Error(`Service account authentication failed: ${error.message}`);
     }
   }
 
@@ -290,6 +346,178 @@ class GoogleSheetsConnector {
     return {
       updated: 1
     };
+  }
+
+  /**
+   * Update specific fields in a prospect row (non-destructive write)
+   *
+   * @param {number} rowIndex - Row index (1-based, where 1 = first data row after header)
+   * @param {Object} updates - Fields to update, e.g. { Timezone: 'EST', Notes: 'Called on 2026-01-15' }
+   * @returns {Promise<{updated: number, rowIndex: number, error?: string}>}
+   */
+  async updateProspectRow(rowIndex, updates = {}) {
+    if (!this.doc) {
+      throw new Error('Google Sheets authentication required. Call authenticate() first.');
+    }
+
+    if (this.authMode !== 'write') {
+      throw new Error('updateProspectRow requires write mode. Initialize with authMode="write".');
+    }
+
+    // Validate no protected fields
+    const protectedSet = new Set(this.protectedFields || [
+      'Name', 'Email', 'Company', 'Title', 'DateAdded', 'FirstContact'
+    ]);
+
+    for (const field of Object.keys(updates)) {
+      if (protectedSet.has(field)) {
+        return {
+          updated: 0,
+          rowIndex,
+          error: `Cannot update protected field: ${field}`
+        };
+      }
+    }
+
+    const sheet = this.doc.sheetsByTitle[this.sheetName];
+    if (!sheet) {
+      return {
+        updated: 0,
+        rowIndex,
+        error: `Sheet "${this.sheetName}" not found`
+      };
+    }
+
+    try {
+      const rows = await this.recordApiCall(() => sheet.getRows());
+
+      // rowIndex is 1-based for user, but array is 0-based
+      const targetRow = rows[rowIndex - 1];
+      if (!targetRow) {
+        return {
+          updated: 0,
+          rowIndex,
+          error: `Row ${rowIndex} not found (total rows: ${rows.length})`
+        };
+      }
+
+      // Apply updates
+      for (const [field, value] of Object.entries(updates)) {
+        targetRow[field] = value;
+      }
+
+      await this.recordApiCall(() => targetRow.save());
+
+      return {
+        updated: 1,
+        rowIndex
+      };
+    } catch (error) {
+      return {
+        updated: 0,
+        rowIndex,
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Update prospect row by email address (find row, then update)
+   *
+   * @param {string} email - Prospect email address
+   * @param {Object} updates - Fields to update
+   * @returns {Promise<{updated: number, email: string, rowIndex?: number, error?: string}>}
+   */
+  async updateProspectByEmail(email, updates = {}) {
+    if (!this.doc) {
+      throw new Error('Google Sheets authentication required. Call authenticate() first.');
+    }
+
+    if (this.authMode !== 'write') {
+      throw new Error('updateProspectByEmail requires write mode. Initialize with authMode="write".');
+    }
+
+    const sheet = this.doc.sheetsByTitle[this.sheetName];
+    if (!sheet) {
+      return {
+        updated: 0,
+        email,
+        error: `Sheet "${this.sheetName}" not found`
+      };
+    }
+
+    try {
+      const rows = await this.recordApiCall(() => sheet.getRows());
+      const targetRow = rows.find(r => r.Email?.toString().toLowerCase() === email.toLowerCase());
+
+      if (!targetRow) {
+        return {
+          updated: 0,
+          email,
+          error: `Prospect with email "${email}" not found`
+        };
+      }
+
+      // Find row index (1-based)
+      const rowIndex = rows.indexOf(targetRow) + 1;
+
+      // Use updateProspectRow for actual update (includes validation)
+      return this.updateProspectRow(rowIndex, updates);
+    } catch (error) {
+      return {
+        updated: 0,
+        email,
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Append new prospect row (new row, all fields)
+   *
+   * @param {Object} prospect - Prospect data in TOON format or sheet column format
+   * @param {boolean} [toonFormat=false] - If true, convert from TOON to sheet columns
+   * @returns {Promise<{appended: number, error?: string}>}
+   */
+  async appendProspectRow(prospect, toonFormat = false) {
+    if (!this.doc) {
+      throw new Error('Google Sheets authentication required. Call authenticate() first.');
+    }
+
+    if (this.authMode !== 'write') {
+      throw new Error('appendProspectRow requires write mode. Initialize with authMode="write".');
+    }
+
+    const sheet = this.doc.sheetsByTitle[this.sheetName];
+    if (!sheet) {
+      return {
+        appended: 0,
+        error: `Sheet "${this.sheetName}" not found`
+      };
+    }
+
+    try {
+      // Convert TOON format to sheet columns if needed
+      let sheetRow = prospect;
+      if (toonFormat && this.fieldMapping) {
+        const reverseMapping = {};
+        for (const [sheetField, toonField] of Object.entries(this.fieldMapping)) {
+          reverseMapping[toonField] = sheetField;
+        }
+        sheetRow = toonToSheetRow(prospect, reverseMapping);
+      }
+
+      await this.recordApiCall(() => sheet.addRows([sheetRow]));
+
+      return {
+        appended: 1
+      };
+    } catch (error) {
+      return {
+        appended: 0,
+        error: error.message
+      };
+    }
   }
 
   /**

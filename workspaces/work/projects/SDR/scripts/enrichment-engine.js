@@ -22,6 +22,8 @@
 
 const dns = require('dns').promises;
 const { validateEmail } = require('./validate-prospects');
+const timezoneCache = require('../lib/timezone-cache');
+const hunterVerifier = require('./hunter-verifier');
 
 /**
  * SECTION 1: EMAIL CANDIDATE GENERATION
@@ -335,15 +337,16 @@ async function enrichProspectWebFetch(prospect, cache = null) {
 
 /**
  * Creates a cache object for a single enrichment run
- * Prevents duplicate MX lookups, web searches, and fetches
+ * Prevents duplicate MX lookups, web searches, fetches, and Hunter verifications
  *
- * @returns {Object} Cache with mxRecords, webSearchResults, webFetchResults Maps
+ * @returns {Object} Cache with mxRecords, webSearchResults, webFetchResults, hunterVerifications Maps
  */
 function createEnrichmentCache() {
   return {
     mxRecords: new Map(),           // domain -> {valid, mxRecords, error}
     webSearchResults: new Map(),    // company|title -> {searches, found, signals}
-    webFetchResults: new Map()      // company -> {fetched, context, error}
+    webFetchResults: new Map(),     // company -> {fetched, context, error}
+    hunterVerifications: new Map()  // email -> {success, status, result, score, verifiedAt}
   };
 }
 
@@ -407,6 +410,21 @@ async function enrichProspect(prospect, cache = null) {
     }
   }
 
+  // Step 2b: Timezone lookup (after MX validation)
+  if (enriched.loc) {
+    // Parse location "City, State" format
+    const locParts = enriched.loc.split(',').map(p => p.trim());
+    if (locParts.length >= 2) {
+      const city = locParts[0];
+      const state = locParts[1];
+      const tz = await timezoneCache.getTimezone(city, state, 'USA');
+      if (tz) {
+        enriched.tz = tz;
+        signals.timezoneResolved = true;
+      }
+    }
+  }
+
   // Step 3: Web search for company context
   if (enriched.co && enriched.ti) {
     const webSearchResult = await enrichProspectWebSearch(enriched, cache);
@@ -423,8 +441,43 @@ async function enrichProspect(prospect, cache = null) {
     }
   }
 
-  // Step 5: Calculate confidence score
+  // Step 5: Calculate confidence score (before Hunter verification)
   enriched.confidence = calculateDeliverabilityScore(signals);
+
+  // Step 5b: Hunter.io email verification for borderline candidates (score 0.5-0.8)
+  // Skip high-confidence candidates (>= 0.9) and low-confidence (< 0.5)
+  // Only verify if we have an email and score is in borderline range
+  if (enriched.em && enriched.confidence >= 0.5 && enriched.confidence < 0.9) {
+    try {
+      const verification = await hunterVerifier.verifyEmail(enriched.em);
+      if (verification.success && verification.status) {
+        enriched.hunterVerification = {
+          status: verification.status,
+          result: verification.result,
+          score: verification.score,
+          verifiedAt: verification.verifiedAt
+        };
+
+        // Boost confidence for 'valid' or increase penalty for 'invalid'
+        if (verification.status === 'valid') {
+          signals.hunterVerified = true;
+          enriched.confidence = Math.min(enriched.confidence + 0.15, 1.0);
+        } else if (verification.status === 'invalid') {
+          signals.hunterInvalid = true;
+          enriched.confidence = Math.max(enriched.confidence - 0.2, 0.0);
+        } else if (verification.status === 'valid_catchall') {
+          signals.hunterCatchall = true;
+          enriched.confidence = Math.max(enriched.confidence - 0.1, 0.0);
+        }
+      } else if (verification.error) {
+        // Log but don't fail - use pattern + MX score as fallback
+        enriched.hunterVerificationError = verification.error;
+      }
+    } catch (error) {
+      // Log error but continue - enrichment shouldn't fail due to Hunter API issues
+      console.warn(`[enrichment-engine] Hunter verification error for ${enriched.em}: ${error.message}`);
+    }
+  }
 
   // Step 6: Determine action based on confidence
   enriched.confidenceAction = confidenceThresholds(enriched);
@@ -488,5 +541,9 @@ module.exports = {
 
   // Main enrichment
   enrichProspect,
-  enrichProspects
+  enrichProspects,
+
+  // External module access (for direct usage if needed)
+  timezoneCache,
+  hunterVerifier
 };

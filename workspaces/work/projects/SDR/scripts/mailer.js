@@ -1,15 +1,15 @@
 /**
- * Mailer — Gmail SMTP email sender for SDR outreach
+ * Mailer — Microsoft Graph API email sender for SDR outreach
  *
  * Responsibilities:
  * - Merge prospect data into templates ({{firstName}}, {{company}}, etc.)
- * - Send via Gmail SMTP with BCC
+ * - Send via Microsoft Graph API with OAuth token management
  * - Enforce daily limits and per-send delay
  * - Log every send to outreach/sends.json (TOON format)
  * - Return structured result for state machine
  */
 
-const nodemailer = require('nodemailer');
+const { OAuthClient } = require('./oauth-client');
 const fs = require('fs');
 const path = require('path');
 
@@ -74,43 +74,41 @@ function logSend(sendsLog, prospect, subject, result) {
 // ============================================================================
 
 class Mailer {
-  constructor(config) {
+  constructor(config, oauthConfig) {
     this.config = config;
-    this.transporter = null;
+    this.oauthConfig = oauthConfig;
+    this.oauthClient = null;
   }
 
   /**
-   * Initialize SMTP transporter
+   * Initialize OAuth client with token caching
    */
   connect() {
-    if (this.transporter) return;
+    if (this.oauthClient) return;
 
-    if (!this.config.smtp.user || !this.config.smtp.pass) {
-      throw new Error('OUTLOOK_USER and OUTLOOK_PASSWORD must be set in .env');
+    if (!this.oauthConfig || !this.oauthConfig.azure) {
+      throw new Error('OAuth config must be provided to Mailer');
     }
 
-    this.transporter = nodemailer.createTransport({
-      host: this.config.smtp.host,
-      port: this.config.smtp.port,
-      secure: this.config.smtp.secure,
-      requireTLS: this.config.smtp.requireTLS,
-      auth: {
-        user: this.config.smtp.user,
-        pass: this.config.smtp.pass
-      }
-    });
+    this.oauthClient = new OAuthClient(this.oauthConfig);
   }
 
   /**
-   * Verify SMTP connection
+   * Verify OAuth connection by attempting to get access token
    */
   async verify() {
     this.connect();
-    return this.transporter.verify();
+
+    try {
+      await this.oauthClient.getAccessToken();
+      return true;
+    } catch (error) {
+      throw new Error(`OAuth verification failed: ${error.message}`);
+    }
   }
 
   /**
-   * Send a single email to a prospect
+   * Send a single email to a prospect via Microsoft Graph API
    *
    * @param {Object} opts
    * @param {Object} opts.prospect - TOON prospect object
@@ -131,17 +129,15 @@ class Mailer {
       };
     }
 
-    const mailOptions = {
-      from: `"${this.config.sender.name}" <${this.config.sender.email}>`,
-      to: prospect.em,
-      bcc: this.config.sender.bcc,
-      subject,
-      text: body
-    };
-
     try {
-      const info = await this.transporter.sendMail(mailOptions);
-      const result = { ok: true, messageId: info.messageId };
+      const result = await this.oauthClient.sendMailWithRetry({
+        to: prospect.em,
+        subject,
+        body,
+        from: this.config.sender.name,
+        bcc: this.config.sender.bcc
+      });
+
       logSend(sendsLog, prospect, subject, result);
       return result;
     } catch (error) {

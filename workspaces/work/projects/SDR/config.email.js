@@ -1,26 +1,17 @@
 /**
  * Email Configuration
  *
- * Sending limits, SMTP settings, and logging paths.
+ * Sending limits, sender info, and logging paths.
+ * OAuth credentials are loaded separately via config.oauth.js
  * All credentials come from environment variables (never hardcoded).
  */
 
 require('dotenv').config();
 
 module.exports = {
-  smtp: {
-    host: 'smtp.office365.com',
-    port: 587,
-    secure: false,       // STARTTLS (not SSL-from-the-start)
-    requireTLS: true,
-    user: process.env.OUTLOOK_USER,
-    pass: process.env.OUTLOOK_PASSWORD
-  },
-
   sender: {
     name: process.env.SENDER_NAME || 'Oliver Chase',
-    email: process.env.OUTLOOK_USER,
-    bcc: process.env.BCC_EMAIL
+    email: 'oliver@vtwo.co'
   },
 
   limits: {

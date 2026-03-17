@@ -28,17 +28,17 @@ const SDR_ROOT = path.join(__dirname, '..');
 async function stepSync() {
   console.log('\n[1/5] Syncing prospects from Google Sheets...');
   try {
-    if (!process.env.GOOGLE_SHEET_ID || !process.env.GOOGLE_CREDENTIALS_PATH) {
-      console.log('  ⚠ GOOGLE_SHEET_ID or GOOGLE_CREDENTIALS_PATH not set — skipping sync');
+    if (!process.env.GOOGLE_SHEET_ID) {
+      console.log('  ⚠ GOOGLE_SHEET_ID not set — skipping sync');
       return { skipped: true, reason: 'credentials_not_configured' };
     }
 
     const { GoogleSheetsConnector } = require('../sheets-connector');
+    // Sheets write access (via service account) to be added in Phase 3
     const config = {
       google_sheets: {
         sheet_id: process.env.GOOGLE_SHEET_ID,
-        sheet_name: process.env.GOOGLE_SHEET_NAME || 'Prospects',
-        credentials_path: process.env.GOOGLE_CREDENTIALS_PATH
+        sheet_name: process.env.GOOGLE_SHEET_NAME || 'Prospects'
       }
     };
 
@@ -66,6 +66,7 @@ async function stepEnrich() {
   console.log('\n[2/5] Enriching new prospects...');
   try {
     const { EnrichmentEngine } = require('./enrichment-engine');
+    const { SheetsWriter } = require('./sheets-writer');
     const prospectsPath = path.join(SDR_ROOT, 'prospects.json');
 
     const { prospects } = JSON.parse(fs.readFileSync(prospectsPath, 'utf8'));
@@ -79,6 +80,20 @@ async function stepEnrich() {
     const engine = new EnrichmentEngine();
     let enriched = 0;
     let discovered = 0;
+    let sheetsUpdated = 0;
+    let sheetsUpdatesFailed = 0;
+
+    // Initialize sheets writer (for updating Google Sheets after enrichment)
+    let writer = null;
+    if (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) {
+      try {
+        writer = new SheetsWriter();
+        await writer.authenticate();
+      } catch (err) {
+        console.warn(`  ⚠ Sheets writer authentication failed: ${err.message} — will save locally only`);
+        writer = null;
+      }
+    }
 
     for (const prospect of newProspects) {
       const result = await engine.enrichProspect(prospect);
@@ -89,18 +104,47 @@ async function stepEnrich() {
         prospect.st = 'email_discovered';
         enriched++;
         if (result.confidence >= 0.8) discovered++;
+
+        // Update Google Sheets if writer is available
+        if (writer && prospect.em) {
+          const enrichmentUpdates = {
+            Email: prospect.em,
+            Status: 'email_discovered',
+            Notes: `Enriched: ${prospect.confidence >= 0.8 ? 'High confidence' : 'Moderate confidence'}`
+          };
+
+          // Add optional enriched fields
+          if (prospect.tz) enrichmentUpdates.Timezone = prospect.tz;
+          if (prospect.companyContext?.location) enrichmentUpdates.Location = prospect.companyContext.location;
+          if (prospect.signals?.webSearchFound) enrichmentUpdates.Signal = 'Web enriched';
+
+          const updateResult = await writer.updateEnrichedProspect(prospect.em, enrichmentUpdates);
+          if (updateResult.updated) {
+            sheetsUpdated++;
+          } else {
+            sheetsUpdatesFailed++;
+          }
+        }
       }
     }
 
-    // Write back
+    // Write back to prospects.json
     const updated = JSON.parse(fs.readFileSync(prospectsPath, 'utf8'));
     const byId = Object.fromEntries(newProspects.map(p => [p.id, p]));
     updated.prospects = updated.prospects.map(p => byId[p.id] || p);
     updated.metadata.lu = new Date().toISOString();
     fs.writeFileSync(prospectsPath, JSON.stringify(updated, null, 2));
 
-    console.log(`  ✓ Enriched ${enriched} prospects, ${discovered} high-confidence emails`);
-    return { enriched, discovered };
+    let summary = `  ✓ Enriched ${enriched} prospects, ${discovered} high-confidence emails`;
+    if (writer) {
+      summary += ` (Sheets updated: ${sheetsUpdated}`;
+      if (sheetsUpdatesFailed > 0) {
+        summary += `, failed: ${sheetsUpdatesFailed}`;
+      }
+      summary += ')';
+    }
+    console.log(summary);
+    return { enriched, discovered, sheetsUpdated, sheetsUpdatesFailed };
   } catch (err) {
     console.error(`  ✗ Enrichment failed: ${err.message}`);
     return { error: err.message };
@@ -135,8 +179,8 @@ async function stepDraft() {
 async function stepInbox() {
   console.log('\n[4/5] Checking inbox for replies...');
   try {
-    if (!process.env.OUTLOOK_USER || !process.env.OUTLOOK_PASSWORD) {
-      console.log('  ⚠ Outlook credentials not configured — skipping inbox check');
+    if (!process.env.OUTLOOK_TENANT_ID || !process.env.OUTLOOK_CLIENT_ID || !process.env.OUTLOOK_CLIENT_SECRET) {
+      console.log('  ⚠ Outlook OAuth credentials not configured — skipping inbox check');
       return { skipped: true, reason: 'credentials_not_configured' };
     }
 
