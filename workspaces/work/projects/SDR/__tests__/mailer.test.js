@@ -6,7 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const mockSendMailWithRetry = jest.fn().mockResolvedValue({ messageId: 'msg-123' });
+const mockSendMailWithRetry = jest.fn().mockResolvedValue({ ok: true, messageId: 'msg-123' });
 
 jest.mock('../scripts/oauth-client', () => ({
   OAuthClient: jest.fn().mockImplementation(() => ({
@@ -104,7 +104,7 @@ describe('Mailer.send', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockSendMailWithRetry.mockResolvedValue({ messageId: 'msg-123' });
+    mockSendMailWithRetry.mockResolvedValue({ ok: true, messageId: 'msg-123' });
     mailer = new Mailer(MOCK_CONFIG, MOCK_OAUTH_CONFIG);
   });
 
@@ -124,8 +124,9 @@ describe('Mailer.send', () => {
     await mailer.send({ prospect: MOCK_PROSPECT, subject: 'Test', body: 'Body' });
 
     const callArgs = mockSendMailWithRetry.mock.calls[0];
-    expect(callArgs[3]).toBe('bcc@vtwo.co'); // BCC is 4th arg
-    expect(callArgs[1]).toBe('sarah@tech.io'); // TO is 2nd arg
+    const mailOpts = callArgs[0]; // sendMailWithRetry receives opts object as first arg
+    expect(mailOpts.bcc).toBe('bcc@vtwo.co');
+    expect(mailOpts.to).toBe('sarah@tech.io');
   });
 
   test('logs send to sends.json on success', async () => {
@@ -164,8 +165,13 @@ describe('Mailer.send', () => {
     expect(mockSendMailWithRetry).not.toHaveBeenCalled();
   });
 
-  test('throws if OAuth config not provided', () => {
-    expect(() => new Mailer(MOCK_CONFIG)).toThrow('OAuth config');
+  test('throws if OAuth config not provided', async () => {
+    const mailerNoOAuth = new Mailer(MOCK_CONFIG);
+    await expect(mailerNoOAuth.send({
+      prospect: MOCK_PROSPECT,
+      subject: 'Test',
+      body: 'Body'
+    })).rejects.toThrow('OAuth config');
   });
 });
 
@@ -178,7 +184,7 @@ describe('Mailer.sendBatch', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockSendMailWithRetry.mockResolvedValue({ messageId: 'msg-ok' });
+    mockSendMailWithRetry.mockResolvedValue({ ok: true, messageId: 'msg-ok' });
     mailer = new Mailer(MOCK_CONFIG, MOCK_OAUTH_CONFIG);
   });
 

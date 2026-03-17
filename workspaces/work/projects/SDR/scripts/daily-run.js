@@ -179,8 +179,8 @@ async function stepDraft() {
 async function stepInbox() {
   console.log('\n[4/5] Checking inbox for replies...');
   try {
-    if (!process.env.OUTLOOK_TENANT_ID || !process.env.OUTLOOK_CLIENT_ID || !process.env.OUTLOOK_CLIENT_SECRET) {
-      console.log('  ⚠ Outlook OAuth credentials not configured — skipping inbox check');
+    if (!process.env.OUTLOOK_USER || !process.env.OUTLOOK_PASSWORD) {
+      console.log('  ⚠ Outlook credentials not configured — skipping inbox check');
       return { skipped: true, reason: 'credentials_not_configured' };
     }
 
@@ -188,9 +188,10 @@ async function stepInbox() {
     const config = buildConfig();
     const result = await checkInbox({
       ...config,
-      sendsPath: path.join(SDR_ROOT, 'outreach/sends.json'),
-      repliesPath: path.join(SDR_ROOT, 'outreach/replies.json'),
-      prospectsPath: path.join(SDR_ROOT, 'prospects.json')
+      paths: {
+        sendsLog: 'outreach/sends.json',
+        repliesLog: 'outreach/replies.json'
+      }
     });
 
     console.log(`  ✓ Checked inbox: ${result.newReplies} new replies (${result.classified?.filter(r => r.classification === 'positive').length || 0} positive)`);

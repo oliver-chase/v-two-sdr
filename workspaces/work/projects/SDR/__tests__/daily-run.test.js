@@ -12,7 +12,10 @@ jest.mock('../scripts/draft-emails', () => ({
 
 jest.mock('../scripts/inbox-monitor', () => ({
   checkInbox: jest.fn().mockResolvedValue({ checked: 10, newReplies: 2, classified: [{ classification: 'positive' }] }),
-  buildConfig: jest.fn().mockReturnValue({ user: 'test@vtwo.co', pass: 'testpass' })
+  buildConfig: jest.fn().mockReturnValue({
+    outlook: { user: 'test@vtwo.co', pass: 'testpass' },
+    imap: { host: 'outlook.office365.com', port: 993 }
+  })
 }), { virtual: true });
 
 jest.mock('../sheets-connector', () => ({
