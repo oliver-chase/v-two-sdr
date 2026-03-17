@@ -1,0 +1,13 @@
+[
+  {
+    "id": "test-001",
+    "fn": "John",
+    "em": "john@example.com",
+    "co": "Acme",
+    "subject": "Test subject",
+    "body": "Test body",
+    "scheduledSendAt": "2026-03-17T22:58:34.900Z",
+    "status": "sent",
+    "sentAt": "2026-03-17T22:58:35.921Z"
+  }
+]
