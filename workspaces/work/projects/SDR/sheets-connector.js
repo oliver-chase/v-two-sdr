@@ -122,8 +122,8 @@ class GoogleSheetsConnector {
       });
 
       // Initialize GoogleSpreadsheet with service account auth
-      this.doc = new GoogleSpreadsheet(this.sheetId);
-      this.doc.useServiceAccountAuth(this.authClient);
+      // In google-spreadsheet v4.1.5+, pass auth to constructor
+      this.doc = new GoogleSpreadsheet(this.sheetId, { auth: this.authClient });
 
       await this.doc.loadInfo();
 
