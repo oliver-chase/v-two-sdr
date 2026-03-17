@@ -28,8 +28,12 @@
 
 1. web_search for companies matching V.Two ICP (Series A-C, 50-500 employees, SaaS/FinTech/Enterprise)
 2. For each prospect, research email format per OPENCLAW_EMAIL_RESEARCH_STRATEGY.md
-3. Add to Google Sheet
-4. Notify Kiana in Telegram: "Added N prospects — ready for tomorrow's run"
+3. Write prospect data to JSON file (TOON format with nm, co, ti, em, loc, no fields)
+4. To add prospects to the sheet, run:
+   ```
+   node scripts/add-prospects.js --file /tmp/prospects.json
+   ```
+5. Notify Kiana in Telegram: "Added N prospects — ready for tomorrow's run"
 
 ## Web Search
 
