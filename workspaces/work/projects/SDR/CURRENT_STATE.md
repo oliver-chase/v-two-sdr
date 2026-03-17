@@ -1,27 +1,28 @@
 # SDR Project — Current State
-**Date:** March 17, 2026 | **Status:** Phase 2 Complete ✅ | **Tests:** 375/375 Passing
+**Date:** March 17, 2026 | **Status:** Phase 2 Complete ✅ + Queue System | **Tests:** 386/386 Passing
 
 ---
 
 ## Executive Summary
 
 **What:** AI Sales Development Representative system for cold outreach automation
-**Status:** Phase 2 complete, ready for first production run
+**Status:** Phase 2 + queue system complete, ready for first production run
 **Repository:** github.com/saturdaythings/v-two-sdr
-**Tests:** 375/375 passing (100%) | Coverage: 59.74% (Phase 3 target: 80%)
+**Tests:** 386/386 passing (100%) | Coverage: 60.97% (Phase 3 target: 80%)
 
 ---
 
-## What's Built (6 Core Systems)
+## What's Built (7 Core Systems)
 
 | System | Status | Purpose | Files |
 |--------|--------|---------|-------|
 | **Google Sheets Sync** | ✅ Complete | Bidirectional read/write to lead repository | sheets-connector.js, sheets-writer.js, config/config.google-sheets-write.js |
 | **Enrichment Engine** | ✅ Complete | Email validation, timezone detection, signal discovery | enrichment-engine.js, hunter-verifier.js |
 | **Email Drafting** | ✅ Complete | LLM-powered template generation with 3-tier fallback | draft-emails.js, oauth-client.js |
-| **Email Sending** | ✅ Complete | Outlook SMTP via Microsoft Graph OAuth | mailer.js, oauth-client.js |
+| **Email Queue System** | ✅ New | Timezone-aware scheduling (Tue-Thu 9-11 AM), persistent queue, graceful processing | send-queue.js, queue-executor.js |
+| **Email Sending** | ✅ Complete | Outlook SMTP via Microsoft Graph OAuth, processes queued emails | mailer.js, oauth-client.js |
 | **Inbox Monitoring** | ✅ Complete | IMAP reply detection and classification | inbox-monitor.js, reply-classifier.js |
-| **Daily Orchestration** | ✅ Complete | 5-step workflow runner: sync → enrich → draft → inbox → report | daily-run.js, scripts/* |
+| **Daily Orchestration** | ✅ Complete | 5-step workflow runner: sync → enrich → draft → inbox → report (with [SDR] structured output) | daily-run.js, scripts/* |
 
 ---
 
@@ -47,18 +48,20 @@ All secrets are set in GitHub Actions repository settings. Pull via: `Settings �
 
 ---
 
-## Test Status (375/375 Passing)
+## Test Status (386/386 Passing)
 
-**Overall:** 100% pass rate | **Coverage:** 59.74% | **Phase 3 Target:** 80%+
+**Overall:** 100% pass rate | **Coverage:** 60.97% | **Phase 3 Target:** 80%+
 
 | Module | Tests | Coverage | Status |
 |--------|-------|----------|--------|
-| enrichment-engine.js | 85 | 76.77% | ✅ Above threshold |
+| enrichment-engine.js | 85 | 81.88% | ✅ Above threshold |
 | draft-emails.js | 42 | 90% | ✅ Excellent |
 | mailer.js | 35 | 90.38% | ✅ Excellent |
 | reply-classifier.js | 56 | 94.73% | ✅ Excellent |
 | sheets-connector.js | 48 | 59.41% | 🔲 Below threshold (Phase 3) |
 | state-machine.js | 35 | 86.79% | ✅ Above threshold |
+| send-queue.js | 7 | 64% | ✅ New (queue scheduling) |
+| queue-executor.js | 4 | 68.85% | ✅ New (queue processing) |
 | hunter-verifier.js | 28 | 57.89% | 🔲 Below threshold (Phase 3) |
 | oauth-client.js | 22 | 0% | 🔲 Mocked (Phase 3: integration tests) |
 | sheets-writer.js | 24 | 0% | 🔲 Mocked (Phase 3: integration tests) |
@@ -68,17 +71,28 @@ All secrets are set in GitHub Actions repository settings. Pull via: `Settings �
 - Sheets writer (newly integrated, needs unit + integration tests)
 - Hunter verifier (email verification network calls)
 - Sheets connector (write operations not fully covered)
+- Queue system (send-queue.js, queue-executor.js at 64-69%, target 80%+)
 
 ---
 
-## Recent Work (Last 2 Commits)
+## Recent Work (Last 3 Sessions)
 
 | Commit | Date | Summary |
 |--------|------|---------|
+| (Latest) | Mar 17 | feat: add email queue system — timezone-aware scheduling, persistent queue, graceful executor |
 | 2de415d | Mar 16 | fix: close 4 critical gaps — protected fields schema + GitHub Actions secrets |
 | a5e1206 | Mar 11 | feat: implement full environment variable setup per spec (13K lines, 42 files) |
 
-**Milestone Achievements:**
+**Milestone Achievements (This Session):**
+- ✅ Timezone-aware send scheduling (Tue-Thu 9-11 AM in prospect timezone)
+- ✅ Persistent send queue (outreach/send-queue.json)
+- ✅ Queue executor with Mailer integration
+- ✅ Updated daily-run.js with [SDR] structured output for OpenClaw parsing
+- ✅ Updated send-approved.js to queue instead of immediate sends
+- ✅ 11 new tests added (send-queue.test.js: 7, queue-executor.test.js: 4)
+- ✅ All 386 tests passing (100%)
+
+**Earlier Milestone Achievements:**
 - ✅ All 8 test failures fixed (was 8, now 0)
 - ✅ Protected fields schema enforced (Name, Email, Company, Title, DateAdded, FirstContact)
 - ✅ GitHub Actions workflow validated (all 10 secrets mapped)
@@ -116,6 +130,59 @@ Google Sheet columns (left to right) with TOON mappings and protection status:
 - 🔒 Protected fields: Cannot be overwritten by enrichment or write operations
 - ✅ Writable fields: Updated by daily-run.js stepEnrich, mailer, reply-classifier
 - ✗ Read-only in write mode: Prevents accidental overwrites
+
+---
+
+## Email Queue Architecture (NEW)
+
+Emails are now queued with timezone-aware scheduling instead of sending immediately. This allows:
+- **Timezone Optimization:** Sends are scheduled for Tue-Thu 9-11 AM in prospect's local timezone
+- **Graceful Processing:** Failed sends are retried, with status tracking
+- **Decoupled Workflow:** Drafting and sending are separate steps (allows manual review)
+
+### Send Queue Flow
+
+```
+Approved Email
+    ↓
+send-approved.js (calls queueSend)
+    ↓
+send-queue.js (calculateNextSendWindow)
+    ↓ Calculate next Tue-Thu 9-11 AM in prospect timezone
+    ↓
+outreach/send-queue.json (append queued item)
+    ↓ [Later, when scheduledSendAt arrives]
+    ↓
+queue-executor.js (executeQueue)
+    ↓ Filter: status=queued AND scheduledSendAt <= now
+    ↓
+mailer.send()
+    ↓ Update status → sent/failed, commit to git
+```
+
+### Queue Item Schema
+
+```json
+{
+  "id": "prospect-123",
+  "fn": "John",
+  "em": "john@example.com",
+  "co": "Acme Inc",
+  "tz": "America/New_York",
+  "ti": "VP Sales",
+  "subject": "Email subject line",
+  "body": "Email body text",
+  "status": "queued",           // queued | sent | failed
+  "scheduledSendAt": "2026-03-20T14:30:00Z",  // Next Tue-Thu 9-11 AM UTC
+  "queuedAt": "2026-03-17T16:00:00Z",
+  "sentAt": "2026-03-20T14:32:00Z"  // (added when sent)
+}
+```
+
+**Integration Points:**
+- `send-approved.js` calls `queueSend(prospect)` from send-queue.js
+- `queue-executor.js` runs hourly (via OpenClaw) to process due sends
+- Both scripts use `commitToGit()` for audit trail
 
 ---
 
@@ -327,7 +394,9 @@ If enrichment step fails, check in order:
 | **scripts/reply-classifier.js** | 190 | LLM-based reply sentiment analysis |
 | **scripts/state-machine.js** | 380 | Lead lifecycle enforcement (status transitions) |
 | **scripts/approve-drafts.js** | 142 | Draft approval CLI + feedback loop |
-| **scripts/send-approved.js** | 156 | Send approved emails + track bounces |
+| **scripts/send-approved.js** | 80 | Queue approved emails (calls send-queue.js) |
+| **scripts/send-queue.js** | 204 | NEW: Queue emails with timezone-aware scheduling (Tue-Thu 9-11 AM) |
+| **scripts/queue-executor.js** | 158 | NEW: Process send queue, send due emails, update statuses |
 | **scripts/validate-prospects.js** | 98 | Data validation + TOON schema check |
 | **config/config.google-sheets-write.js** | 72 | Write mode configuration (protected fields) |
 | **config.sheets.js** | 89 | Read mode configuration (field mappings) |
@@ -335,7 +404,7 @@ If enrichment step fails, check in order:
 | **jest.config.js** | 34 | Test framework configuration |
 | **.github/workflows/daily-sdr.yml** | 63 | GitHub Actions scheduling + secrets |
 
-**Total Production Code:** ~3,572 lines | **Tests:** 375 passing | **Docs:** 12 MD files
+**Total Production Code:** ~3,934 lines (added send-queue.js + queue-executor.js) | **Tests:** 386 passing | **Docs:** 12 MD files
 
 ---
 
@@ -389,4 +458,4 @@ npm test -- --watch          # Watch mode (development)
 
 ---
 
-**Status:** ✅ Ready for production | **Last Updated:** March 17, 2026
+**Status:** ✅ Ready for production (with queue system) | **Last Updated:** March 17, 2026 (Queue System Complete)

@@ -26,15 +26,13 @@ const SDR_ROOT = path.join(__dirname, '..');
 // ============================================================================
 
 async function stepSync() {
-  console.log('\n[1/5] Syncing prospects from Google Sheets...');
   try {
     if (!process.env.GOOGLE_SHEET_ID) {
-      console.log('  ⚠ GOOGLE_SHEET_ID not set — skipping sync');
+      console.log('[SDR] Step 1: Syncing sheets... skipped (no credentials)');
       return { skipped: true, reason: 'credentials_not_configured' };
     }
 
     const { GoogleSheetsConnector } = require('../sheets-connector');
-    // Sheets write access (via service account) to be added in Phase 3
     const config = {
       google_sheets: {
         sheet_id: process.env.GOOGLE_SHEET_ID,
@@ -54,16 +52,15 @@ async function stepSync() {
     };
     fs.writeFileSync(prospectsPath, JSON.stringify(updated, null, 2));
 
-    console.log(`  ✓ Synced ${result.prospects.length} prospects`);
+    console.log(`[SDR] Step 1: Syncing sheets... done (${result.prospects.length} prospects)`);
     return { synced: result.prospects.length, summary: result.summary };
   } catch (err) {
-    console.error(`  ✗ Sync failed: ${err.message}`);
+    console.error(`[SDR] Step 1: Sync failed: ${err.message}`);
     return { error: err.message };
   }
 }
 
 async function stepEnrich() {
-  console.log('\n[2/5] Enriching new prospects...');
   try {
     const { EnrichmentEngine } = require('./enrichment-engine');
     const { SheetsWriter } = require('./sheets-writer');
@@ -73,7 +70,7 @@ async function stepEnrich() {
     const newProspects = prospects.filter(p => p.st === 'new' && !p.em);
 
     if (newProspects.length === 0) {
-      console.log('  ✓ No new prospects to enrich');
+      console.log('[SDR] Step 2: Enriching... done (0 new)');
       return { enriched: 0 };
     }
 
@@ -83,14 +80,12 @@ async function stepEnrich() {
     let sheetsUpdated = 0;
     let sheetsUpdatesFailed = 0;
 
-    // Initialize sheets writer (for updating Google Sheets after enrichment)
     let writer = null;
     if (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) {
       try {
         writer = new SheetsWriter();
         await writer.authenticate();
       } catch (err) {
-        console.warn(`  ⚠ Sheets writer authentication failed: ${err.message} — will save locally only`);
         writer = null;
       }
     }
@@ -105,7 +100,6 @@ async function stepEnrich() {
         enriched++;
         if (result.confidence >= 0.8) discovered++;
 
-        // Update Google Sheets if writer is available
         if (writer && prospect.em) {
           const enrichmentUpdates = {
             Email: prospect.em,
@@ -113,7 +107,6 @@ async function stepEnrich() {
             Notes: `Enriched: ${prospect.confidence >= 0.8 ? 'High confidence' : 'Moderate confidence'}`
           };
 
-          // Add optional enriched fields
           if (prospect.tz) enrichmentUpdates.Timezone = prospect.tz;
           if (prospect.companyContext?.location) enrichmentUpdates.Location = prospect.companyContext.location;
           if (prospect.signals?.webSearchFound) enrichmentUpdates.Signal = 'Web enriched';
@@ -128,31 +121,21 @@ async function stepEnrich() {
       }
     }
 
-    // Write back to prospects.json
     const updated = JSON.parse(fs.readFileSync(prospectsPath, 'utf8'));
     const byId = Object.fromEntries(newProspects.map(p => [p.id, p]));
     updated.prospects = updated.prospects.map(p => byId[p.id] || p);
     updated.metadata.lu = new Date().toISOString();
     fs.writeFileSync(prospectsPath, JSON.stringify(updated, null, 2));
 
-    let summary = `  ✓ Enriched ${enriched} prospects, ${discovered} high-confidence emails`;
-    if (writer) {
-      summary += ` (Sheets updated: ${sheetsUpdated}`;
-      if (sheetsUpdatesFailed > 0) {
-        summary += `, failed: ${sheetsUpdatesFailed}`;
-      }
-      summary += ')';
-    }
-    console.log(summary);
+    console.log(`[SDR] Step 2: Enriching... done (${enriched} new)`);
     return { enriched, discovered, sheetsUpdated, sheetsUpdatesFailed };
   } catch (err) {
-    console.error(`  ✗ Enrichment failed: ${err.message}`);
+    console.error(`[SDR] Step 2: Enrichment failed: ${err.message}`);
     return { error: err.message };
   }
 }
 
 async function stepDraft() {
-  console.log('\n[3/5] Generating email drafts...');
   try {
     const { generateDraftsWithAI } = require('./draft-emails');
     const result = await generateDraftsWithAI({
@@ -164,23 +147,22 @@ async function stepDraft() {
       }
     });
 
-    console.log(`  ✓ ${result.drafted} drafts generated (${result.skipped_optout} opt-outs skipped, ${result.skipped_no_email} no email)`);
+    console.log(`[SDR] Step 3: Drafting... done (${result.drafted} drafts)`);
     return result;
   } catch (err) {
     if (err.code === 'MODULE_NOT_FOUND') {
-      console.log('  ⚠ draft-emails.js not yet built — skipping');
+      console.log('[SDR] Step 3: Drafting... skipped (not yet built)');
       return { skipped: true };
     }
-    console.error(`  ✗ Draft generation failed: ${err.message}`);
+    console.error(`[SDR] Step 3: Draft generation failed: ${err.message}`);
     return { error: err.message };
   }
 }
 
 async function stepInbox() {
-  console.log('\n[4/5] Checking inbox for replies...');
   try {
     if (!process.env.OUTLOOK_USER || !process.env.OUTLOOK_PASSWORD) {
-      console.log('  ⚠ Outlook credentials not configured — skipping inbox check');
+      console.log('[SDR] Step 4: Inbox... skipped (no credentials)');
       return { skipped: true, reason: 'credentials_not_configured' };
     }
 
@@ -194,14 +176,14 @@ async function stepInbox() {
       }
     });
 
-    console.log(`  ✓ Checked inbox: ${result.newReplies} new replies (${result.classified?.filter(r => r.classification === 'positive').length || 0} positive)`);
+    console.log(`[SDR] Step 4: Inbox... done (${result.newReplies} replies)`);
     return result;
   } catch (err) {
     if (err.code === 'MODULE_NOT_FOUND') {
-      console.log('  ⚠ inbox-monitor.js not yet built — skipping');
+      console.log('[SDR] Step 4: Inbox... skipped (not yet built)');
       return { skipped: true };
     }
-    console.error(`  ✗ Inbox check failed: ${err.message}`);
+    console.error(`[SDR] Step 4: Inbox check failed: ${err.message}`);
     return { error: err.message };
   }
 }
@@ -274,9 +256,6 @@ async function run() {
     ? ['sync', 'enrich', 'draft', 'inbox', 'report']
     : [stepArg];
 
-  console.log(`SDR Daily Run — ${new Date().toISOString()}`);
-  console.log(`Steps: ${steps.join(' → ')}`);
-
   const results = {};
 
   if (steps.includes('sync')) results.sync = await stepSync();
@@ -285,6 +264,7 @@ async function run() {
   if (steps.includes('inbox')) results.inbox = await stepInbox();
   if (steps.includes('report')) results.report = stepReport(results);
 
+  console.log('[SDR] COMPLETE');
   return results;
 }
 
