@@ -207,14 +207,50 @@ function confidenceThresholds(prospect) {
 }
 
 /**
- * SECTION 5: WEB SEARCH INTEGRATION (OpenClaw)
+ * SECTION 5: WEB SEARCH INTEGRATION (Serper API)
  */
 
 /**
- * Searches for company context via web_search
- * Integration point with OpenClaw research tools
+ * Searches company context via Serper API (Google search)
+ * Replaces mocked web search with real Google results
  *
- * In production: calls OpenClaw web_search API
+ * @param {string} query - Search query
+ * @returns {Promise<Array>} Search results {title, snippet, link}
+ */
+async function searchSerper(query) {
+  const apiKey = process.env.SERPER_API_KEY;
+
+  if (!apiKey) {
+    return [];
+  }
+
+  try {
+    const response = await fetch('https://google.serper.dev/search', {
+      method: 'POST',
+      headers: {
+        'X-API-KEY': apiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ q: query, num: 5 })
+    });
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const data = await response.json();
+    return data.organic || [];
+  } catch (error) {
+    console.warn(`[enrichment-engine] Serper search failed for "${query}": ${error.message}`);
+    return [];
+  }
+}
+
+/**
+ * Searches for company context via Serper API
+ * Integration point for Google-backed research
+ *
+ * In production: calls Serper API for real search results
  * In testing: mocked via Jest
  *
  * @param {Object} prospect - Prospect {fn, ln, co, ti}
@@ -238,17 +274,28 @@ async function enrichProspectWebSearch(prospect, cache = null) {
   }
 
   try {
-    // In production: call OpenClaw web_search here
-    // Example: const results = await openClawWebSearch(`${prospect.co} ${prospect.ti} hiring signals`)
+    // Serper API for real Google search results
+    const queries = [
+      `${prospect.co} ${prospect.ti} hiring`,
+      `${prospect.co} funding rounds`,
+      `${prospect.co} company news`
+    ];
 
-    // For now: mock response
+    let found = false;
+    const searches = [];
+
+    for (const query of queries) {
+      const results = await searchSerper(query);
+      searches.push({ query, found: results.length > 0 });
+      if (results.length > 0) {
+        found = true;
+      }
+    }
+
     const result = {
-      searches: [
-        { query: `${prospect.co} hiring signals`, found: false },
-        { query: `${prospect.co} ${prospect.ti} LinkedIn`, found: false }
-      ],
-      found: false,
-      signals: []
+      searches,
+      found,
+      signals: found ? ['webSearchFound'] : []
     };
 
     if (cache) {
@@ -547,6 +594,7 @@ module.exports = {
   confidenceThresholds,
 
   // Web integration
+  searchSerper,
   enrichProspectWebSearch,
   enrichProspectWebFetch,
 
