@@ -31,12 +31,11 @@ const readConfig = require('../config.sheets');
 
 class SheetsWriter {
   constructor(options = {}) {
-    // Merge write config with sheet config
+    // Merge sheet field mapping with write credentials
     const config = {
       google_sheets: {
         ...readConfig.google_sheets,
-        ...writeConfig.google_sheets_write,
-        // Ensure write mode credentials
+        // Add service account credentials for write access
         service_account_email: writeConfig.google_sheets_write.serviceAccountEmail,
         private_key: writeConfig.google_sheets_write.privateKey,
         protected_fields: writeConfig.google_sheets_write.protectedFields,

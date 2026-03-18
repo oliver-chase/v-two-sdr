@@ -18,6 +18,7 @@
 require('dotenv').config();
 const path = require('path');
 const fs = require('fs');
+const sheetsConfig = require('../config/config.sheets');
 
 const SDR_ROOT = path.join(__dirname, '..');
 
@@ -34,9 +35,13 @@ async function stepSync() {
 
     const { GoogleSheetsConnector } = require('../sheets-connector');
     const config = {
+      ...sheetsConfig,
       google_sheets: {
-        sheet_id: process.env.GOOGLE_SHEET_ID,
-        sheet_name: process.env.GOOGLE_SHEET_NAME || 'Prospects'
+        ...sheetsConfig.google_sheets,
+        // Allow environment overrides
+        sheet_id: process.env.GOOGLE_SHEET_ID || sheetsConfig.google_sheets.sheet_id,
+        sheet_name: process.env.GOOGLE_SHEET_NAME || sheetsConfig.google_sheets.sheet_name,
+        api_key: process.env.GOOGLE_API_KEY || sheetsConfig.google_sheets.api_key
       }
     };
 

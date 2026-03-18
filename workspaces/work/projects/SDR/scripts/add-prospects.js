@@ -29,6 +29,7 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const { GoogleSheetsConnector } = require('../sheets-connector');
+const sheetsConfig = require('../config/config.sheets');
 
 const SDR_ROOT = path.join(__dirname, '..');
 
@@ -129,11 +130,15 @@ async function addProspects(filePath) {
       return { success: false, added: 0, error: 'Validation failed' };
     }
 
-    // Initialize Google Sheets connector
+    // Initialize Google Sheets connector with config + credentials
     const config = {
+      ...sheetsConfig,
       google_sheets: {
-        sheet_id: process.env.GOOGLE_SHEET_ID,
-        sheet_name: process.env.GOOGLE_SHEET_NAME || 'Leads',
+        ...sheetsConfig.google_sheets,
+        // Override sheet ID and name from environment if provided
+        sheet_id: process.env.GOOGLE_SHEET_ID || sheetsConfig.google_sheets.sheet_id,
+        sheet_name: process.env.GOOGLE_SHEET_NAME || sheetsConfig.google_sheets.sheet_name,
+        // Service account credentials for write access
         service_account_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
         private_key: process.env.GOOGLE_PRIVATE_KEY
       }

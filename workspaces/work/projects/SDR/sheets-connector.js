@@ -58,7 +58,8 @@ class GoogleSheetsConnector {
 
     // Cache & rate limiting
     this.schema = null;
-    this.fieldMapping = null;
+    // Use explicit field mapping from config if provided, otherwise will be inferred
+    this.fieldMapping = config.google_sheets?.field_mapping || null;
     this.apiCallTimes = [];
     this.apiCallCount = 0;
   }
