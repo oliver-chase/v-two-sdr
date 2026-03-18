@@ -133,12 +133,13 @@ async function addProspects(filePath) {
     const config = {
       google_sheets: {
         sheet_id: process.env.GOOGLE_SHEET_ID,
-        sheet_name: 'Leads'
-      },
-      authMode: 'write'
+        sheet_name: process.env.GOOGLE_SHEET_NAME || 'Leads',
+        service_account_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        private_key: process.env.GOOGLE_PRIVATE_KEY
+      }
     };
 
-    const connector = new GoogleSheetsConnector(config);
+    const connector = new GoogleSheetsConnector(config, 'write');
 
     console.log('[SDR] Authenticating with Google Sheets...');
     await connector.authenticate();
