@@ -320,8 +320,8 @@ class GoogleSheetsConnector {
 
         const sheetRows = batch.map(toon => {
           const sheetRow = toonToSheetRow(toon, reverseMapping);
-          // Convert to array format for sheets API
-          return Object.values(this.fieldMapping).map(field => sheetRow[field] || '');
+          // Convert to array format for sheets API (use sheet column headers in order)
+          return Object.keys(this.fieldMapping).map(sheetField => sheetRow[sheetField] || '');
         });
 
         let lastError = null;
