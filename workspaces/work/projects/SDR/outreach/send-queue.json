@@ -1,24 +1,13 @@
 [
   {
-    "id": "id-1",
+    "id": "test-001",
     "fn": "John",
     "em": "john@example.com",
     "co": "Acme Corp",
     "tz": "America/New_York",
     "ti": "CTO",
     "status": "queued",
-    "scheduledSendAt": "2026-03-19T13:17:00.000Z",
-    "queuedAt": "2026-03-18T12:58:20.348Z"
-  },
-  {
-    "id": "id-2",
-    "fn": "John",
-    "em": "john@example.com",
-    "co": "Acme Corp",
-    "tz": "America/New_York",
-    "ti": "CTO",
-    "status": "queued",
-    "scheduledSendAt": "2026-03-19T13:53:00.000Z",
-    "queuedAt": "2026-03-18T12:58:20.386Z"
+    "scheduledSendAt": "2026-03-19T13:54:00.000Z",
+    "queuedAt": "2026-03-18T12:58:20.423Z"
   }
 ]
