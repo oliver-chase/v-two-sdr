@@ -1,5 +1,19 @@
 # OpenClaw SDR Runbook
 
+## Context Load (read on every SDR session)
+
+**Read these files in order at session start:**
+
+1. ~/OliverRepo/agents/ORCHESTRATOR.md — System architecture and agent roles
+2. ~/OliverRepo/agents/openclaw/INSTRUCTIONS.md — OpenClaw startup & operational rules
+3. ~/OliverRepo/workspaces/work/projects/SDR/SKILL.md — SDR system capabilities reference
+4. ~/OliverRepo/workspaces/work/projects/SDR/OPENCLAW_RUNBOOK.md — This file (task definitions)
+5. ~/OliverRepo/workspaces/work/projects/SDR/CURRENT_STATE.md — Current status and blockers
+
+**Total read time:** ~5-7 minutes. Ensures full context before any SDR task execution.
+
+---
+
 ## Morning Run (8 AM ET daily, or when Kiana says "SDR" in Telegram)
 
 1. Run: node scripts/queue-executor.js (flush any sends due from prior day)
