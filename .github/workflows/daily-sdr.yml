@@ -1,0 +1,63 @@
+name: SDR Daily Run
+
+on:
+  schedule:
+    # 8:00 AM ET (13:00 UTC) weekdays
+    - cron: '0 13 * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  daily-run:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: workspaces/work/projects/SDR/package.json
+
+      - name: Install dependencies
+        working-directory: workspaces/work/projects/SDR
+        run: npm ci
+
+      - name: Daily SDR run
+        working-directory: workspaces/work/projects/SDR
+        env:
+          # Azure OAuth (Email Sending via Graph API)
+          OUTLOOK_TENANT_ID: ${{ secrets.OUTLOOK_TENANT_ID }}
+          OUTLOOK_CLIENT_ID: ${{ secrets.OUTLOOK_CLIENT_ID }}
+          OUTLOOK_CLIENT_SECRET: ${{ secrets.OUTLOOK_CLIENT_SECRET }}
+          # Google Sheets (Read via API Key)
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          # Google Sheets (Write via Service Account)
+          GOOGLE_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_EMAIL }}
+          GOOGLE_PRIVATE_KEY: ${{ secrets.GOOGLE_PRIVATE_KEY }}
+          # Enrichment APIs
+          ABSTRACT_API_KEY: ${{ secrets.ABSTRACT_API_KEY }}
+          HUNTER_IO_API_KEY: ${{ secrets.HUNTER_IO_API_KEY }}
+          SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
+          # LLM Drafting (3-tier fallback)
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_FREE_KEY: ${{ secrets.OPENROUTER_FREE_KEY }}
+          # Email Configuration
+          BCC_EMAIL: oliver@vtwo.co
+          SENDER_NAME: Oliver Chase
+          MAX_DAILY_SENDS: 15
+          SEND_DELAY_MS: 30000
+          GOOGLE_SHEET_NAME: Leads
+        run: node scripts/daily-run.js
+
+      - name: Run inbox check
+        working-directory: workspaces/work/projects/SDR
+        env:
+          OUTLOOK_USER: oliver@vtwo.co
+          OUTLOOK_PASSWORD: ${{ secrets.OUTLOOK_PASSWORD }}
+          # Note: inbox-monitor uses IMAP basic auth (fallback if OAuth not available)
+          # TODO: Phase 4 upgrade to Microsoft Graph API for consistency
+        run: node scripts/inbox-monitor.js || echo "Inbox check completed"
