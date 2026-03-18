@@ -3,21 +3,11 @@
     "id": "test-001",
     "fn": "John",
     "em": "john@example.com",
-    "co": "Acme",
-    "subject": "Test subject",
-    "body": "Test body",
-    "scheduledSendAt": "2026-03-18T12:58:19.472Z",
-    "status": "sent",
-    "sentAt": "2026-03-18T12:58:20.520Z"
-  },
-  {
-    "id": "test-002",
-    "fn": "Jane",
-    "em": "jane@example.com",
-    "co": "Widgets Inc",
-    "subject": "Future email",
-    "body": "This is scheduled for later",
-    "scheduledSendAt": "2026-03-18T13:58:20.472Z",
-    "status": "queued"
+    "co": "Acme Corp",
+    "tz": "America/New_York",
+    "ti": "CTO",
+    "status": "queued",
+    "scheduledSendAt": "2026-03-19T13:28:00.000Z",
+    "queuedAt": "2026-03-18T12:58:36.839Z"
   }
 ]
