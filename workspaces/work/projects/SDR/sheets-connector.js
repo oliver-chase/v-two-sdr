@@ -13,7 +13,7 @@
  */
 
 const { GoogleSpreadsheet } = require('google-spreadsheet');
-const { JWT } = require('google-auth-library');
+const { google } = require('googleapis');
 const fs = require('fs');
 const {
   parseSheetRow,
@@ -112,17 +112,20 @@ class GoogleSheetsConnector {
     }
 
     try {
-      // Create JWT auth client
-      this.authClient = new JWT({
-        email: this.serviceAccountEmail,
-        key: this.privateKey,
+      // Create GoogleAuth client using googleapis library
+      // This pattern works reliably with google-spreadsheet v4.1.5+
+      this.authClient = new google.auth.GoogleAuth({
+        credentials: {
+          client_email: this.serviceAccountEmail,
+          private_key: this.privateKey
+        },
         scopes: [
           'https://www.googleapis.com/auth/spreadsheets'
         ]
       });
 
       // Initialize GoogleSpreadsheet with service account auth
-      // In google-spreadsheet v4.1.5+, pass auth to constructor
+      // Pass auth to constructor for google-spreadsheet v4.1.5+
       this.doc = new GoogleSpreadsheet(this.sheetId, { auth: this.authClient });
 
       await this.doc.loadInfo();
