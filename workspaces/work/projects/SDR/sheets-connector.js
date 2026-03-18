@@ -335,7 +335,7 @@ class GoogleSheetsConnector {
               this.sheets.spreadsheets.values.update({
                 spreadsheetId: this.sheetId,
                 range,
-                valueInputOption: 'RAW_INPUT',
+                valueInputOption: 'RAW',
                 resource: {
                   values: sheetRows
                 }
@@ -439,7 +439,7 @@ class GoogleSheetsConnector {
         this.sheets.spreadsheets.values.update({
           spreadsheetId: this.sheetId,
           range: `${this.sheetName}!${colLetter}${rowIndex}`,
-          valueInputOption: 'RAW_INPUT',
+          valueInputOption: 'RAW',
           resource: {
             values: [[newStatus]]
           }
