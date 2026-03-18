@@ -270,8 +270,11 @@ class GoogleSheetsConnector {
 
     const sheet = this.doc.sheetsByTitle[this.sheetName];
     if (!sheet) {
-      throw new Error(`Sheet "${this.sheetName}" not found`);
+      throw new Error(`Sheet "${this.sheetName}" not found. Available sheets: ${Object.keys(this.doc.sheetsByTitle).join(', ')}`);
     }
+
+    console.log(`[SDR] Writing to sheet: "${this.sheetName}" (${sheet.title})`);
+    console.log(`[SDR] Sheet properties: rows=${sheet.rowCount}, cols=${sheet.columnCount}`);
 
     const reverseMapping = {};
     for (const [sheetField, toonField] of Object.entries(this.fieldMapping)) {
@@ -285,16 +288,38 @@ class GoogleSheetsConnector {
     for (let i = 0; i < toonProspects.length; i += batchSize) {
       const batch = toonProspects.slice(i, Math.min(i + batchSize, toonProspects.length));
       const sheetRows = batch.map(toon => toonToSheetRow(toon, reverseMapping));
+      const batchIndex = Math.floor(i / batchSize);
+
+      console.log(`[SDR] Batch ${batchIndex + 1}: Writing ${sheetRows.length} row(s)...`);
 
       let lastError = null;
+      let addedInBatch = 0;
+
       for (let attempt = 0; attempt < retries; attempt++) {
         try {
-          await this.recordApiCall(() => sheet.addRows(sheetRows));
-          addedCount += sheetRows.length;
+          const response = await this.recordApiCall(() => sheet.addRows(sheetRows));
+
+          // Verify rows were actually added
+          if (!response || !Array.isArray(response) || response.length === 0) {
+            throw new Error(`Sheet.addRows() returned no rows: ${JSON.stringify(response)}`);
+          }
+
+          if (response.length !== sheetRows.length) {
+            console.warn(`[SDR] Expected ${sheetRows.length} rows, got ${response.length}`);
+          }
+
+          // Log each row that was added
+          response.forEach((row, idx) => {
+            console.log(`[SDR]   Row ${sheet.rowCount - response.length + idx + 1}: ${row.Name || row.nm || '(no name)'}`);
+          });
+
+          addedInBatch = response.length;
+          addedCount += addedInBatch;
           lastError = null;
           break;
         } catch (error) {
           lastError = error;
+          console.error(`[SDR] Batch ${batchIndex + 1} attempt ${attempt + 1} failed: ${error.message}`);
           if (attempt < retries - 1) {
             // Exponential backoff
             await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
@@ -303,13 +328,15 @@ class GoogleSheetsConnector {
       }
 
       if (lastError) {
-        return {
-          added: addedCount,
-          total: toonProspects.length,
-          error: lastError.message
-        };
+        throw new Error(`Failed to add batch ${batchIndex + 1}: ${lastError.message}`);
+      }
+
+      if (addedInBatch === 0) {
+        throw new Error(`Batch ${batchIndex + 1} returned 0 rows added - silent write failure detected`);
       }
     }
+
+    console.log(`[SDR] Successfully wrote ${addedCount}/${toonProspects.length} prospect(s)`);
 
     return {
       added: addedCount,

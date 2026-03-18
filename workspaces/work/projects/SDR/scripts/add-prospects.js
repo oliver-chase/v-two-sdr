@@ -150,21 +150,26 @@ async function addProspects(filePath) {
 
     // Append prospects
     console.log(`[SDR] Appending ${prospects.length} prospect(s) to sheet...`);
-    const result = await connector.appendProspects(prospects);
 
-    if (result.error) {
-      console.error(`[SDR] Failed to append prospects: ${result.error}`);
-      return { success: false, added: result.added || 0, error: result.error };
+    try {
+      const result = await connector.appendProspects(prospects);
+
+      if (result.error) {
+        console.error(`[SDR] Failed to append prospects: ${result.error}`);
+        return { success: false, added: result.added || 0, error: result.error };
+      }
+
+      if (result.added === 0) {
+        console.error('[SDR] ERROR: No prospects were added to the sheet (silent write failure)');
+        throw new Error('Silent write failure: appendProspects returned 0 rows added');
+      }
+
+      console.log(`[SDR] ✅ Successfully added ${result.added} prospect(s) to sheet`);
+      return { success: true, added: result.added };
+    } catch (error) {
+      console.error(`[SDR] Write error: ${error.message}`);
+      return { success: false, added: 0, error: error.message };
     }
-
-    console.log(`[SDR] ✅ Successfully added ${result.added} prospect(s) to sheet`);
-
-    // Log individual prospect additions
-    prospects.slice(0, result.added).forEach((p, i) => {
-      console.log(`[SDR]   ${i + 1}. ${p.nm} (${p.co}) — ${p.ti}`);
-    });
-
-    return { success: true, added: result.added };
   } catch (error) {
     console.error(`[SDR] Error: ${error.message}`);
     return { success: false, added: 0, error: error.message };

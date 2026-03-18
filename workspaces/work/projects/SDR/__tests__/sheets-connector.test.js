@@ -521,8 +521,17 @@ describe('GoogleSheetsConnector — Write Operations (Mocked)', () => {
       loadInfo: jest.fn().mockResolvedValue(undefined),
       sheetsByTitle: {
         Prospects: {
+          title: 'Prospects',
+          rowCount: 3,
+          columnCount: 5,
           getRows: jest.fn().mockResolvedValue(MOCK_SHEET_ROWS),
-          addRows: jest.fn().mockResolvedValue([])
+          addRows: jest.fn(function(rows) {
+            // Mock returns the rows that were added with row indices
+            return Promise.resolve(rows.map((row, idx) => ({
+              rowIndex: MOCK_SHEET_ROWS.length + idx + 1,
+              ...row
+            })));
+          })
         }
       }
     };
@@ -687,14 +696,24 @@ describe('Error Handling', () => {
   });
 
   test('appendProspects: should retry on transient failures', async () => {
+    const mockRow = {
+      Name: 'Alice Johnson',
+      Email: 'alice@techcorp.com',
+      Company: 'TechCorp',
+      Title: 'CEO'
+    };
+
     connector.doc = {
       useServiceAccountAuth: jest.fn().mockResolvedValue(undefined),
       loadInfo: jest.fn().mockResolvedValue(undefined),
       sheetsByTitle: {
         Prospects: {
+          title: 'Prospects',
+          rowCount: 3,
+          columnCount: 4,
           addRows: jest.fn()
             .mockRejectedValueOnce(new Error('RATE_LIMIT_EXCEEDED'))
-            .mockResolvedValueOnce([])
+            .mockResolvedValueOnce([{ rowIndex: 4, ...mockRow }])
         }
       }
     };
@@ -721,8 +740,16 @@ describe('Full Integration: Sync Workflow', () => {
       loadInfo: jest.fn().mockResolvedValue(undefined),
       sheetsByTitle: {
         Prospects: {
+          title: 'Prospects',
+          rowCount: 3,
+          columnCount: 5,
           getRows: jest.fn().mockResolvedValue(MOCK_SHEET_ROWS),
-          addRows: jest.fn().mockResolvedValue([])
+          addRows: jest.fn(function(rows) {
+            return Promise.resolve(rows.map((row, idx) => ({
+              rowIndex: MOCK_SHEET_ROWS.length + idx + 1,
+              ...row
+            })));
+          })
         },
         OptOuts: {
           getRows: jest.fn().mockResolvedValue([])
