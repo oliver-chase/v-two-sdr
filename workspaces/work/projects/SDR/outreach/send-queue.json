@@ -3,11 +3,11 @@
     "id": "test-001",
     "fn": "John",
     "em": "john@example.com",
-    "co": "Acme Corp",
-    "tz": "America/New_York",
-    "ti": "CTO",
-    "status": "queued",
-    "scheduledSendAt": "2026-03-19T13:54:00.000Z",
-    "queuedAt": "2026-03-18T12:58:20.423Z"
+    "co": "Acme",
+    "subject": "Test subject",
+    "body": "Test body",
+    "scheduledSendAt": "2026-03-18T12:58:19.472Z",
+    "status": "sent",
+    "sentAt": "2026-03-18T12:58:20.479Z"
   }
 ]
