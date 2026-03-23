@@ -8,6 +8,16 @@
     "body": "Test body",
     "scheduledSendAt": "2026-03-23T15:42:04.061Z",
     "status": "sent",
-    "sentAt": "2026-03-23T15:42:05.081Z"
+    "sentAt": "2026-03-23T15:42:05.125Z"
+  },
+  {
+    "id": "test-002",
+    "fn": "Jane",
+    "em": "jane@example.com",
+    "co": "Widgets Inc",
+    "subject": "Future email",
+    "body": "This is scheduled for later",
+    "scheduledSendAt": "2026-03-23T16:42:05.061Z",
+    "status": "queued"
   }
 ]
