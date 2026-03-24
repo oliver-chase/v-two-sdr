@@ -185,3 +185,10 @@ Before including any email:
 ## Questions?
 
 Flag blockers or questions to Claude Code or Kiana immediately. Research is only valuable if it's accurate and validated.
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+

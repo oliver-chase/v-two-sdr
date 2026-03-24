@@ -108,3 +108,10 @@ All state is on disk. Nothing in chat history is required.
 **Last Updated:** 2026-03-11
 **Status:** Active for SDR project
 **Conflicts:** None — references existing rules in INSTRUCTIONS.md + project-protocol SKILL.md
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+

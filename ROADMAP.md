@@ -132,3 +132,10 @@ Phase 3 (Orchestration + Analytics)
 ---
 
 **Last Updated:** 2026-03-11 | **Next Check-In:** Mar 13 (Phase 1 progress)
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+

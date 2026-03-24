@@ -219,3 +219,10 @@ Chunks 2, 3, 4 (parallel, no dependencies on each other)
 **Last Updated:** 2026-03-12
 **Created By:** Claude Code (Session 2026-03-12 20:30 UTC)
 **Authority:** Kiana (VP Strategic Growth)
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+

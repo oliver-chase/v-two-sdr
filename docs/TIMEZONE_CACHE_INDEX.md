@@ -353,3 +353,10 @@ None. Ready to implement.
 **Design Status:** COMPLETE ✅
 **Ready for Implementation:** YES
 **Effort Estimate:** 5-6 hours (development) + 2 hours (testing)
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+

@@ -358,3 +358,10 @@ workspaces/work/projects/SDR/
 
 **Next:** Execute Chunk 1 (Cleanup) immediately, then dispatch Chunks 2-4 in parallel.
 
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+

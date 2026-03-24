@@ -4,4 +4,9 @@ node_modules/
 .DS_Store
 workspaces/work/projects/SDR/secrets/
 coverage/
-.env
+*.bak
+# Prevent nested workspace pollution
+workspaces/
+system/
+team/
+skills/

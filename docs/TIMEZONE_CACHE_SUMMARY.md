@@ -241,3 +241,10 @@ Quota remaining:      133
 
 **Status:** Design Complete — Ready for Implementation
 **Next Step:** Implement `lib/timezone-cache.js` module
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+

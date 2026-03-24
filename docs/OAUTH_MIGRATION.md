@@ -235,3 +235,10 @@ If issues arise, can revert to SMTP by:
 - [Azure OAuth 2.0](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-client-creds-grant-flow)
 - [Microsoft Graph Mail API](https://learn.microsoft.com/en-us/graph/api/user-sendmail)
 - [App Registration Setup](https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app)
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+

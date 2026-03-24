@@ -395,3 +395,10 @@ These documents are complete as of 2026-03-17. If:
 ---
 
 **Summary:** Start with `OAUTH_AUDIT_SUMMARY.md` (10 min), then choose your path above.
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+

@@ -77,3 +77,10 @@ d2854e5 fix: Phase 1 complete — 153/153 tests passing, coverage thresholds met
 ---
 
 **System is fully built. Test credentials, add prospects, and run.**
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+

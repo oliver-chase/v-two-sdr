@@ -467,3 +467,10 @@ All logic is **deterministic** (no randomness), **verifiable** (confidence scori
 **Status:** Design Complete — Ready for Implementation
 **Maintained By:** Claude Code (Architecture)
 **Questions?** See linked files above for detailed explanations.
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+

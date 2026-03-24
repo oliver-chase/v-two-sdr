@@ -126,3 +126,10 @@ GitHub Actions (`daily-sdr.yml`) runs the full daily cycle at 8AM ET on weekdays
 ---
 **Last Updated:** 2026-03-16
 **Status:** ✅ Phase 2 Complete — Credential testing + first run remaining
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+

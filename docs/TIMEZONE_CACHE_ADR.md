@@ -332,3 +332,10 @@ Add to `enrichment-engine.js` → `enrichProspect()` function:
 **Next Step:** Implementation phase (5-6 hours estimated)
 **Blocking:** None
 **Ready for:** Development team
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+

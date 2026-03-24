@@ -287,3 +287,10 @@ If there's a conflict, this manifest wins.
 
 **Read this file FIRST, before agents/CLAUDE.md, before any project file.**
 **This is the safety rail that prevents structural violations.**
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+

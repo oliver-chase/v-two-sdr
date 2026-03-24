@@ -660,3 +660,10 @@ NEXT STEPS:
 
 **Last Updated:** 2026-03-16
 **Version:** 1.0 (Design Complete)
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+

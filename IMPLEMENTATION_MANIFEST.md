@@ -396,3 +396,10 @@ backoff: [1s, 2s, 4s]  // exponential
 **Status:** ✅ Ready for Testing
 **Last Updated:** March 17, 2026
 **Implementation Engineer:** Claude Code
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+

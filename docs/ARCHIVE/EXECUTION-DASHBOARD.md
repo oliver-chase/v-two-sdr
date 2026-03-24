@@ -204,3 +204,10 @@ npm test 2>&1 | tail -20
 **Last Updated:** 2026-03-12 21:00 UTC
 **Next Check-In:** When Chunk 2 completes (est. 2026-03-12 23:00 UTC)
 **Phase 1 ETA:** 2026-03-13 (Phase 2 ready to launch)
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+

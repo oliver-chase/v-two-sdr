@@ -400,3 +400,10 @@ This implementation provides production-ready write access to Google Sheets via 
 **Files:** 2 created, 2 modified
 **Dependencies:** 0 new (all transitive)
 **Lines of Code:** ~600 (connector update + sheets-writer + daily-run integration)
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+

@@ -378,3 +378,10 @@ Last saved:           2026-03-17 10:05:30 UTC
 **Ready for:** Implementation phase
 **Estimated time:** 4-6 hours (with testing)
 
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+

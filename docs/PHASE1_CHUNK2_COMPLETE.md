@@ -697,3 +697,10 @@ Co-Authored-By: Claude Haiku 4.5 <noreply@anthropic.com>
 **Status:** ✅ COMPLETE & READY FOR HANDOFF
 
 **Version:** 1.0 | **Date:** 2026-03-11 | **Author:** Claude Code
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+

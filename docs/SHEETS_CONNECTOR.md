@@ -614,3 +614,10 @@ All 10 statuses supported (see TOON Format section).
 ---
 
 **Version:** 1.0 | **Author:** Claude Code | **Date:** 2026-03-11
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+

@@ -368,3 +368,10 @@ workspaces/work/projects/SDR/
 3. Claude Code sync script implementation
 4. Microsoft App Registration completion
 5. OpenClaw activation signal
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+

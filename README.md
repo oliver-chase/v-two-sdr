@@ -291,3 +291,10 @@ See: `ROADMAP.md`
 **Version:** 1.0 | **Phase:** 1 Chunk 2 | **Status:** Complete ✅
 
 For detailed API reference, see: `docs/SHEETS_CONNECTOR.md`
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+

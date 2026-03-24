@@ -318,3 +318,10 @@ cat prospects.json
 ---
 
 **Duration:** ~20 minutes | **Difficulty:** Easy (mostly clicking) | **Support:** Check troubleshooting section above
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+

@@ -271,3 +271,10 @@ When verifying a new skill:
 - 100% use TOON format for inputs/outputs
 - ✅ Cross-skill references optimized (DRY principle)
 - 🔒 5+ explicit NEVER rules per skill (security-first)
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+

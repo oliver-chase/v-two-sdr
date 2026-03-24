@@ -325,3 +325,10 @@ Note: Anthropic account currently has no funds. OpenRouter paid tier is the effe
 ---
 
 **Last Updated:** 2026-03-16 | **Status:** Phase 2 Complete | 338/338 tests passing
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+

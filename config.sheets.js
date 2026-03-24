@@ -12,7 +12,7 @@ const config = {
   // Google Sheets API Configuration
   google_sheets: {
     // Sheet ID from Google Sheet URL: https://docs.google.com/spreadsheets/d/{SHEET_ID}/edit
-    sheet_id: process.env.GOOGLE_SHEET_ID || '',
+    sheet_id: process.env.GOOGLE_SHEET_ID || '1bAruz-w1e45Zlgy7gWL2qTHx7eqIufpn4ok9GpPTcg0',
 
     // Google Cloud API key (restricted to Sheets API)
     // Set as GOOGLE_API_KEY env var or GitHub Secret

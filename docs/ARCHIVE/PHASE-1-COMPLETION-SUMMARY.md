@@ -241,3 +241,10 @@ CHUNK4_SUMMARY.md
 **Last Updated:** 2026-03-12 21:15 UTC
 **Status:** Phase 1 Implementation DONE — Awaiting violations resolution + review gates
 **Next Check-in:** After violations fixed (est. 1-2 hours)
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+

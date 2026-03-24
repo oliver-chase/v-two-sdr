@@ -388,3 +388,10 @@ Likelihood: Compliant for 3+ years
 **Audit Completed By:** Claude Haiku 4.5
 **Date:** 2026-03-17
 **Status:** Design & Analysis Only (No Code Implementation)
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+

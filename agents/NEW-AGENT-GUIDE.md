@@ -267,3 +267,10 @@ Before activating a new agent:
 
 **Last updated:** 2026-03-09
 **Template created for:** Kiana's request to support future agents (Claude Code, OpenClaw, and beyond)
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+

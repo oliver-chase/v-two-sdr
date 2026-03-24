@@ -198,3 +198,10 @@ If the system sends to `oliver.chase@v-two.co` and gets a bounce:
 See `enrichment-engine.js` for email candidate generation logic.
 
 See `mailer.js` for send + bounce handling docs.
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+

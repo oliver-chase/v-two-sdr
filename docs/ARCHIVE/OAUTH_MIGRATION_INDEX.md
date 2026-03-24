@@ -411,3 +411,10 @@ Azure checks:        3 step-by-step guides
 **Total Package:** 82 KB, ~1.5-2 hours reading, ready for implementation
 
 **Status:** ✅ Design Complete — Awaiting User Decision & Developer Implementation
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+

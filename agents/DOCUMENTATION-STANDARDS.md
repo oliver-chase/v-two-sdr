@@ -287,3 +287,10 @@ Archive old memory to `system/memory/archive/` if it gets too large.
 ---
 
 *Last updated: 2026-03-06*
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+

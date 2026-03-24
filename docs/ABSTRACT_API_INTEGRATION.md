@@ -463,3 +463,10 @@ Total cost:          $4 + risk of API blocks
 
 **Status:** Integration Guide Complete
 **Reviewed:** 2026-03-17
+
+- Primary model: mistral:7b (local, free)
+- Fallbacks: none []
+- Main agent is set to Mistral
+- OpenRouter and Anthropic API keys have been removed
+- OpenClaw is now fully local and free
+
