@@ -31,8 +31,8 @@ jobs:
           OUTLOOK_TENANT_ID: ${{ secrets.OUTLOOK_TENANT_ID }}
           OUTLOOK_CLIENT_ID: ${{ secrets.OUTLOOK_CLIENT_ID }}
           OUTLOOK_CLIENT_SECRET: ${{ secrets.OUTLOOK_CLIENT_SECRET }}
-          APPROVAL_BASE_URL: "https://api.github.com/repos/saturdaythings/v-two-sdr/actions/workflows/approval-handler.yml/dispatches"
-          SDR_PAT: ${{ secrets.SDR_PAT }}
+          SDR_TOKEN: ${{ secrets.SDR_TOKEN }}
+          WORKER_URL: "https://sdr-approval.workers.dev"
         run: node scripts/approval-email.js
 
       - name: Commit and push changes

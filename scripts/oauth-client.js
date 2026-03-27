@@ -174,7 +174,7 @@ class OAuthClient {
    * @param {string} [opts.bcc] - BCC email address
    * @returns {Promise<{ ok: boolean, messageId?: string, error?: string }>}
    */
-  async sendMailViaGraph({ to, subject, body, from, bcc }) {
+  async sendMailViaGraph({ to, subject, body, from, bcc, isHtml }) {
     let token;
 
     try {
@@ -189,8 +189,10 @@ class OAuthClient {
     // Build message payload
     const message = {
       subject,
-      bodyType: 'text',
-      body: body,
+      body: {
+        contentType: isHtml ? 'HTML' : 'Text',
+        content: body
+      },
       toRecipients: [{ emailAddress: { address: to } }],
       ...(bcc && {
         bccRecipients: [{ emailAddress: { address: bcc } }]

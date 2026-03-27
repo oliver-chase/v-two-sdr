@@ -4,11 +4,16 @@
  * scripts/approval-email.js — Daily approval digest
  *
  * Reads today's drafts from outreach/drafts/YYYY-MM-DD.json and sends ONE
- * summary email to oliver@vtwo.co. Each draft includes a curl command to
- * approve or reject by triggering approval-handler.yml via workflow_dispatch.
+ * HTML email to oliver@vtwo.co. Each draft includes clickable Approve / Reject
+ * links that hit the Cloudflare Worker (sdr-approval.workers.dev), which then
+ * triggers approval-handler.yml via GitHub workflow_dispatch.
  *
- * Uses OAuthClient directly (not Mailer) — this is an internal digest, not
- * prospect outreach, so daily-limit tracking and sends.json are not needed.
+ * Uses OAuthClient directly (not Mailer) — internal digest, not prospect outreach.
+ *
+ * Env vars required:
+ *   OUTLOOK_TENANT_ID, OUTLOOK_CLIENT_ID, OUTLOOK_CLIENT_SECRET — Microsoft Graph auth
+ *   SDR_TOKEN   — shared secret embedded in approval URLs (validated by the Worker)
+ *   WORKER_URL  — base URL of the Cloudflare Worker (default: https://sdr-approval.workers.dev)
  */
 
 const fs = require('fs');
@@ -18,106 +23,138 @@ const oauthConfig = require('../config/config.oauth');
 
 const DRAFTS_DIR = path.join(__dirname, '..', 'outreach', 'drafts');
 const RECIPIENT = 'oliver@vtwo.co';
-const APPROVAL_URL = process.env.APPROVAL_BASE_URL ||
-  'https://api.github.com/repos/saturdaythings/v-two-sdr/actions/workflows/approval-handler.yml/dispatches';
+const DEFAULT_WORKER_URL = 'https://sdr-approval.workers.dev';
 
-// ─── Approval command builder ─────────────────────────────────────────────────
+// ─── URL builder ──────────────────────────────────────────────────────────────
 
 /**
- * Build a single-line curl command to approve or reject a draft.
- * Uses SDR_PAT for auth — scoped to actions:write only.
+ * Build a clickable approval/rejection URL pointing to the Cloudflare Worker.
+ * SDR_TOKEN is the shared secret — the Worker validates it before triggering GitHub.
  */
-function buildApprovalCmd(draftId, action, pat) {
-  const payload = JSON.stringify({
-    ref: 'main',
-    inputs: { draft_id: draftId, action }
-  });
-  return `curl -s -X POST "${APPROVAL_URL}" -H "Authorization: Bearer ${pat}" -H "Content-Type: application/json" -d '${payload}'`;
+function buildApprovalUrl(draftId, action, token, workerUrl) {
+  return workerUrl +
+    '?draft_id=' + encodeURIComponent(draftId) +
+    '&action=' + encodeURIComponent(action) +
+    '&token=' + encodeURIComponent(token);
 }
 
-// ─── Email body builder ───────────────────────────────────────────────────────
+// ─── HTML email body ──────────────────────────────────────────────────────────
 
-function buildEmailBody(drafts, pat) {
-  const sep = '━'.repeat(44);
-  const lines = [];
+function buildEmailBody(drafts, token, workerUrl) {
+  const dateLabel = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-  const label = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  lines.push(`${drafts.length} email${drafts.length === 1 ? '' : 's'} drafted for ${label}. Run APPROVE or REJECT for each.\n`);
+  const approveStyle = 'display:inline-block;padding:8px 18px;background:#27ae60;color:#fff;' +
+    'text-decoration:none;border-radius:4px;font-size:13px;font-weight:600;margin-right:8px';
+  const rejectStyle = 'display:inline-block;padding:8px 18px;background:#c0392b;color:#fff;' +
+    'text-decoration:none;border-radius:4px;font-size:13px;font-weight:600';
+  const dividerStyle = 'border:none;border-top:2px solid #e5e5e5;margin:24px 0';
+  const bodyStyle = 'font-family:system-ui,-apple-system,sans-serif;max-width:640px;' +
+    'margin:0 auto;padding:24px;color:#222';
+  const preStyle = 'background:#f8f8f8;border-radius:4px;padding:12px 16px;' +
+    'white-space:pre-wrap;font-family:monospace;font-size:13px;line-height:1.5;' +
+    'margin:8px 0 16px';
+  const metaStyle = 'font-size:13px;color:#555;margin:2px 0';
+  const subjectStyle = 'font-size:13px;font-style:italic;color:#555;margin:8px 0 4px';
 
-  drafts.forEach((d, i) => {
-    lines.push(sep);
-    lines.push(`${i + 1} of ${drafts.length} — ${d.touch}`);
-    lines.push(`   To:    ${d.nm || d.fn}, ${d.ti} @ ${d.co}`);
-    lines.push(`   Email: ${d.em}`);
-    if (d.tr) lines.push(`   Track: ${d.tr}`);
-    lines.push('');
-    lines.push(`   Subject: ${d.subject}`);
-    lines.push('');
-    d.body.split('\n').forEach(l => lines.push(`   ${l}`));
-    lines.push('');
-    lines.push(`   APPROVE: ${buildApprovalCmd(d.draft_id, 'approve', pat)}`);
-    lines.push(`   REJECT:  ${buildApprovalCmd(d.draft_id, 'reject', pat)}`);
-    lines.push('');
+  let sections = '';
+
+  drafts.forEach(function(d, i) {
+    const approveUrl = buildApprovalUrl(d.draft_id, 'approve', token, workerUrl);
+    const rejectUrl  = buildApprovalUrl(d.draft_id, 'reject',  token, workerUrl);
+    const bodyEscaped = (d.body || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+    sections += '<hr style="' + dividerStyle + '">' +
+      '<p style="font-size:14px;font-weight:700;margin:0 0 8px">' +
+        (i + 1) + ' of ' + drafts.length + ' &mdash; ' + (d.touch || 'OUTREACH') +
+      '</p>' +
+      '<p style="' + metaStyle + '"><strong>To:</strong> ' +
+        (d.nm || d.fn || '') + ', ' + (d.ti || '') + ' @ ' + (d.co || '') +
+      '</p>' +
+      '<p style="' + metaStyle + '"><strong>Email:</strong> ' + (d.em || '') + '</p>' +
+      (d.tr ? '<p style="' + metaStyle + '"><strong>Track:</strong> ' + d.tr + '</p>' : '') +
+      '<p style="' + subjectStyle + '"><strong>Subject:</strong> ' + (d.subject || '') + '</p>' +
+      '<pre style="' + preStyle + '">' + bodyEscaped + '</pre>' +
+      '<div style="margin-top:8px">' +
+        '<a href="' + approveUrl + '" style="' + approveStyle + '">Approve</a>' +
+        '<a href="' + rejectUrl  + '" style="' + rejectStyle  + '">Reject</a>' +
+      '</div>';
   });
 
-  lines.push(sep);
-  return lines.join('\n');
+  sections += '<hr style="' + dividerStyle + '">';
+
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"></head>' +
+    '<body style="' + bodyStyle + '">' +
+    '<h2 style="margin:0 0 4px;font-size:18px">[SDR] ' + drafts.length +
+      ' draft' + (drafts.length === 1 ? '' : 's') + ' ready &mdash; ' + dateLabel + '</h2>' +
+    '<p style="font-size:13px;color:#666;margin:0 0 8px">Click Approve or Reject for each.</p>' +
+    sections +
+    '<p style="font-size:12px;color:#aaa;margin-top:16px">' +
+      'SDR System &mdash; saturdaythings/v-two-sdr' +
+    '</p>' +
+    '</body></html>';
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
-  // SDR_PAT is required to build authenticated approval commands
-  const pat = process.env.SDR_PAT;
-  if (!pat) {
-    console.error('[approval-email] SDR_PAT not set — cannot build approval commands');
+  const token = process.env.SDR_TOKEN;
+  if (!token) {
+    console.error('[approval-email] SDR_TOKEN not set — cannot build approval links');
     process.exit(1);
   }
 
+  const workerUrl = (process.env.WORKER_URL || DEFAULT_WORKER_URL).replace(/\/$/, '');
+
   // Find today's draft file
   const today = new Date().toISOString().split('T')[0];
-  const draftsFile = path.join(DRAFTS_DIR, `${today}.json`);
+  const draftsFile = path.join(DRAFTS_DIR, today + '.json');
 
   if (!fs.existsSync(draftsFile)) {
-    console.log(`[approval-email] No drafts file for ${today} — nothing to send`);
+    console.log('[approval-email] No drafts file for ' + today + ' — nothing to send');
     return;
   }
 
   const allDrafts = JSON.parse(fs.readFileSync(draftsFile, 'utf8'));
-  const pending = allDrafts.filter(d => d.status === 'pending_approval');
+  const pending = allDrafts.filter(function(d) { return d.status === 'pending_approval'; });
 
   if (pending.length === 0) {
     console.log('[approval-email] No pending drafts — skipping');
     return;
   }
 
-  console.log(`[approval-email] Sending digest for ${pending.length} draft(s) to ${RECIPIENT}...`);
+  console.log('[approval-email] Sending HTML digest for ' + pending.length + ' draft(s) to ' + RECIPIENT + '...');
 
   const dateLabel = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  const subject = `[SDR] ${pending.length} draft${pending.length === 1 ? '' : 's'} ready for approval — ${dateLabel}`;
-  const body = buildEmailBody(pending, pat);
+  const subject = '[SDR] ' + pending.length + ' draft' + (pending.length === 1 ? '' : 's') +
+    ' ready for approval \u2014 ' + dateLabel;
+
+  const body = buildEmailBody(pending, token, workerUrl);
 
   const oauthClient = new OAuthClient(oauthConfig);
   const result = await oauthClient.sendMailWithRetry({
     to: RECIPIENT,
     subject,
     body,
-    from: 'Oliver Chase'
+    from: 'Oliver Chase',
+    isHtml: true
   });
 
   if (result.ok) {
-    console.log(`[approval-email] Sent (${result.messageId})`);
+    console.log('[approval-email] Sent (' + result.messageId + ')');
   } else {
-    console.error(`[approval-email] Send failed: ${result.error}`);
+    console.error('[approval-email] Send failed: ' + result.error);
     process.exit(1);
   }
 }
 
 if (require.main === module) {
-  main().catch(err => {
-    console.error(`[approval-email] Fatal: ${err.message}`);
+  main().catch(function(err) {
+    console.error('[approval-email] Fatal: ' + err.message);
     process.exit(1);
   });
 }
 
-module.exports = { main, buildEmailBody, buildApprovalCmd };
+module.exports = { main, buildEmailBody, buildApprovalUrl };

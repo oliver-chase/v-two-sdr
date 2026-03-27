@@ -1,0 +1,11 @@
+name = "sdr-approval"
+main = "approval-worker.js"
+compatibility_date = "2024-01-01"
+
+# Environment variables are set via the Cloudflare dashboard (not here)
+# to avoid committing secrets to git.
+#
+# Required vars (Cloudflare dashboard → Workers → sdr-approval → Settings → Variables):
+#   SDR_TOKEN   — shared secret (same value as GitHub Secret SDR_TOKEN)
+#   GITHUB_PAT  — GitHub PAT with actions:write scope
+#   GITHUB_REPO — saturdaythings/v-two-sdr
