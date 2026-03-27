@@ -1,0 +1,19 @@
+[
+  {
+    "draft_id": "TEST-p-000001",
+    "prospect_id": "p-000001",
+    "em": "oliver@vtwo.co",
+    "fn": "Oliver",
+    "nm": "Oliver Chase",
+    "ti": "Test Prospect",
+    "co": "Test Corp",
+    "tr": "product-maker",
+    "touch": "INITIAL OUTREACH",
+    "fuc": 1,
+    "subject": "Test approval email — ignore",
+    "body": "Hi Oliver,\n\nThis is a test of the approval digest. The approve/reject commands below are real.\n\nOliver\nV.Two | vtwo.co",
+    "gen": "static",
+    "ts": "2026-03-26T12:00:00Z",
+    "status": "pending_approval"
+  }
+]

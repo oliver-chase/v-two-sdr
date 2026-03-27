@@ -11,3 +11,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: echo "hello from send-approved"
+
+      - name: Commit and push changes
+        run: |
+          git config user.email "oliver@vtwo.co"
+          git config user.name "Oliver SDR Bot"
+          git add -A
+          git diff --staged --quiet || git commit -m "sent: approved emails dispatched"
+          git push

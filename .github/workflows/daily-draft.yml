@@ -26,17 +26,19 @@ jobs:
           GOOGLE_PRIVATE_KEY: ${{ secrets.GOOGLE_PRIVATE_KEY }}
         run: node scripts/draft.js
 
-      # approval-email.js wired in Chunk 4
       - name: Send approval email
         env:
           OUTLOOK_TENANT_ID: ${{ secrets.OUTLOOK_TENANT_ID }}
           OUTLOOK_CLIENT_ID: ${{ secrets.OUTLOOK_CLIENT_ID }}
           OUTLOOK_CLIENT_SECRET: ${{ secrets.OUTLOOK_CLIENT_SECRET }}
           APPROVAL_BASE_URL: "https://api.github.com/repos/saturdaythings/v-two-sdr/actions/workflows/approval-handler.yml/dispatches"
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SDR_PAT: ${{ secrets.SDR_PAT }}
-        run: echo "approval-email not yet built (Chunk 4)"
+        run: node scripts/approval-email.js
 
-      - uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "drafts: generated"
+      - name: Commit and push changes
+        run: |
+          git config user.email "oliver@vtwo.co"
+          git config user.name "Oliver SDR Bot"
+          git add -A
+          git diff --staged --quiet || git commit -m "drafts: generated"
+          git push

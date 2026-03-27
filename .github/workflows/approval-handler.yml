@@ -20,3 +20,11 @@ jobs:
           DRAFT_ID: ${{ inputs.draft_id }}
           ACTION: ${{ inputs.action }}
         run: echo "hello from approval-handler — draft=$DRAFT_ID action=$ACTION"
+
+      - name: Commit and push changes
+        run: |
+          git config user.email "oliver@vtwo.co"
+          git config user.name "Oliver SDR Bot"
+          git add -A
+          git diff --staged --quiet || git commit -m "approval: ${{ inputs.action }} ${{ inputs.draft_id }}"
+          git push
