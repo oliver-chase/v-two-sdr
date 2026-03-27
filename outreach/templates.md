@@ -2,51 +2,66 @@
 
 ## Template A — Cold Outreach (Product Maker)
 
-**Subject:** Shipping [Company]'s product
+**Subject:** Recent work with product teams
 
 ```
 Hi [Name],
 
-When you're trying to build fast, splitting the work across design, dev, and strategy vendors costs more than it saves — different priorities, constant context-switching, nobody owning the outcome. V.Two does the full build: strategy, architecture, engineering, delivery, one team accountable for all of it.
+Here's what's been coming up in recent work with product and platform teams:
 
-Worth 20 minutes?
+Speed to market — rebuilt a game launcher for a leading video game publisher, cutting deployment from 3 months to 2 days
+Full product ownership — built new software products end-to-end for founders who needed a full cross-functional team without standing up an internal org
+Platform engagement — rebuilt a collegiate esports platform to support matchmaking, billing, and tournament creation
+
+I work on growth at V.Two — we build custom software end-to-end or embed senior engineers and product people onto teams that need to move faster. Thought a few of these might resonate with what you're working on at [Company].
+
+Open to a quick 15-minute chat?
 
 Oliver
-V.Two | vtwo.co
 ```
 
 ---
 
 ## Template B — Cold Outreach (AI Enablement)
 
-**Subject:** AI in production at [Company]
+**Subject:** Recent work with data and AI teams
 
 ```
 Hi [Name],
 
-Most of the AI work I see stalls in the same place — the infrastructure isn't ready, the data isn't clean, and the pilot that looked great in a demo doesn't hold up in production. V.Two closes that gap: data pipelines, model integration, governance, and cost control. The actual build, not more planning.
+Here's what's been coming up in recent work with data and AI teams:
 
-Open to a 20-minute call?
+Internal tooling and automation — built workflow automations and internal tools that drove meaningful efficiency gains across ops teams
+Platform modernization — modernized existing platforms to improve delivery speed and reliability without disrupting in-flight work
+Custom AI product builds — built AI-powered software end-to-end for teams that needed full engineering ownership, not just a model integration
+
+I work on growth at V.Two — we partner with technical teams building custom software, whether that's standing up new infrastructure, building AI products, or embedding engineers onto teams moving fast. Thought these might be relevant to what you're seeing at [Company].
+
+Open to a quick 15-minute chat?
 
 Oliver
-V.Two | vtwo.co
 ```
 
 ---
 
 ## Template C — Cold Outreach (Pace Car)
 
-**Subject:** Senior engineering at [Company]
+**Subject:** Recent work with engineering teams
 
 ```
 Hi [Name],
 
-If you're trying to accelerate without bringing in a 40-person agency — just experienced engineers who know what they're doing and can hit the ground running — that's exactly what V.Two does. We slot into existing teams, move fast, and don't require six weeks of onboarding.
+Here's what's been coming up in recent work with engineering teams scaling up:
 
-Worth a quick call?
+Embedded delivery — dropped senior engineers into existing teams to accelerate roadmap delivery without the ramp-up overhead of a full engagement
+Platform rebuilds — modernized platforms to improve reliability and velocity without slowing down in-house teams
+Full cross-functional builds — stood up complete engineering, design, and product teams when internal capacity was the constraint
+
+I work on growth at V.Two — we embed senior engineers or full cross-functional teams onto orgs that need to move faster without the overhead of a full outsource. Happy to share how that's worked in practice.
+
+Open to a quick 15-minute chat?
 
 Oliver
-V.Two | vtwo.co
 ```
 
 ---
@@ -56,12 +71,9 @@ V.Two | vtwo.co
 **Subject:** Re: [original subject]
 
 ```
-Hi [Name],
-
-Bumping this in case my last note got buried — still happy to keep it to 20 minutes.
+Just bumping this in case it got buried — been talking with a few teams about [original subject] lately and figured it might be worth a quick follow-up. Would love to connect if you're open to it.
 
 Oliver
-V.Two | vtwo.co
 ```
 
 ---
@@ -73,10 +85,11 @@ V.Two | vtwo.co
 ```
 Hi [Name],
 
-No worries if the timing isn't right — leaving it here. If priorities shift, I'm easy to find.
+Last quick note — V.Two TL;DR: we partner with companies to build software end-to-end or embed senior engineers, designers, and product people onto teams that need to move faster and ship more reliably.
+
+If now isn't the right time, no worries at all — feel free to ping anytime.
 
 Oliver
-V.Two | vtwo.co
 ```
 
 ---
