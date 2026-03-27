@@ -1,0 +1,22 @@
+name: SDR Approval Handler
+
+on:
+  workflow_dispatch:
+    inputs:
+      draft_id:
+        description: 'Draft ID to process'
+        required: true
+      action:
+        description: 'approve or reject'
+        required: true
+
+jobs:
+  handle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Echo inputs
+        env:
+          DRAFT_ID: ${{ inputs.draft_id }}
+          ACTION: ${{ inputs.action }}
+        run: echo "hello from approval-handler — draft=$DRAFT_ID action=$ACTION"

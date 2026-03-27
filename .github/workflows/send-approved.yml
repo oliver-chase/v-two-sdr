@@ -1,0 +1,13 @@
+name: SDR Send Approved
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 15 * * 1-5'  # 10:00 AM ET safety net
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "hello from send-approved"

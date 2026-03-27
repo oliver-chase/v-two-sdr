@@ -1,0 +1,14 @@
+name: SDR Inbox Check
+
+on:
+  schedule:
+    - cron: '0 14 * * 1-5'  # 9:00 AM ET
+    - cron: '0 20 * * 1-5'  # 3:00 PM ET
+  workflow_dispatch:
+
+jobs:
+  inbox:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "hello from inbox-check"

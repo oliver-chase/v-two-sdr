@@ -1,0 +1,13 @@
+name: SDR Daily Draft
+
+on:
+  schedule:
+    - cron: '30 12 * * 1-5'  # 7:30 AM ET
+  workflow_dispatch:
+
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "hello from daily-draft"
