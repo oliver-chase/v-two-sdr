@@ -2,19 +2,16 @@
 
 ## Template A — Cold Outreach (Product Maker)
 
-**Subject:** Quick question, [Name]
+**Subject:** Shipping [Company]'s product
 
 ```
 Hi [Name],
 
-Came across [Company] and thought there might be a fit worth a quick conversation.
+When you're trying to build fast, splitting the work across design, dev, and strategy vendors costs more than it saves — different priorities, constant context-switching, nobody owning the outcome. V.Two does the full build: strategy, architecture, engineering, delivery, one team accountable for all of it.
 
-At V.Two we build custom digital products end-to-end — strategy, engineering, delivery. A lot of founders
-and product leaders come to us when they need to ship something serious without splitting focus across vendors.
+Worth 20 minutes?
 
-Worth a chat?
-
-[Oliver]
+Oliver
 V.Two | vtwo.co
 ```
 
@@ -22,20 +19,16 @@ V.Two | vtwo.co
 
 ## Template B — Cold Outreach (AI Enablement)
 
-**Subject:** AI infrastructure at [Company]
+**Subject:** AI in production at [Company]
 
 ```
 Hi [Name],
 
-Working with a few data and engineering leaders right now on the same challenge — AI investments that
-aren't translating to real output.
+Most of the AI work I see stalls in the same place — the infrastructure isn't ready, the data isn't clean, and the pilot that looked great in a demo doesn't hold up in production. V.Two closes that gap: data pipelines, model integration, governance, and cost control. The actual build, not more planning.
 
-V.Two helps companies close that gap: data infrastructure, model governance, integration, cost control.
-We focus on making AI actually work at scale, not just advising on it.
+Open to a 20-minute call?
 
-Open to a 20-minute call to compare notes?
-
-[Oliver]
+Oliver
 V.Two | vtwo.co
 ```
 
@@ -43,46 +36,46 @@ V.Two | vtwo.co
 
 ## Template C — Cold Outreach (Pace Car)
 
-**Subject:** Senior engineering capacity at [Company]
+**Subject:** Senior engineering at [Company]
 
 ```
 Hi [Name],
 
-Quick one — if you ever need senior engineering capacity that slots into your existing team (not a full
-outsource, just targeted augmentation with AI-assisted velocity), that's exactly what V.Two does.
+If you're trying to accelerate without bringing in a 40-person agency — just experienced engineers who know what they're doing and can hit the ground running — that's exactly what V.Two does. We slot into existing teams, move fast, and don't require six weeks of onboarding.
 
-Would it be useful to connect?
+Worth a quick call?
 
-[Oliver]
+Oliver
 V.Two | vtwo.co
 ```
 
 ---
 
-## Template D — Follow-Up (Day 5–7, no reply)
+## Template D — Follow-Up (Touch 2, Day 5)
 
 **Subject:** Re: [original subject]
 
 ```
 Hi [Name],
 
-Just bumping this up — happy to keep it brief if you're open to it.
+Bumping this in case my last note got buried — still happy to keep it to 20 minutes.
 
-[Oliver]
+Oliver
+V.Two | vtwo.co
 ```
 
 ---
 
-## Template E — Follow-Up (Day 12–14, final)
+## Template E — Follow-Up (Touch 3, Day 12 — Final)
 
-**Subject:** Closing the loop
+**Subject:** Re: [original subject]
 
 ```
 Hi [Name],
 
-No worries if the timing isn't right — I'll leave it here. Feel free to reach out if anything changes.
+No worries if the timing isn't right — leaving it here. If priorities shift, I'm easy to find.
 
-[Oliver]
+Oliver
 V.Two | vtwo.co
 ```
 
@@ -96,4 +89,3 @@ V.Two | vtwo.co
 - [ ] Template D reviewed by Kiana
 - [ ] Template E reviewed by Kiana
 - [ ] Ready for Week 1 sends
-

@@ -130,35 +130,52 @@ function buildBatchPrompt(prospects, templates) {
 
   const prospectLines = prospects.map((p, i) => {
     const fuc = parseInt(p.fuc, 10) || 1;
-    const touchNote = p.st === 'followup_due'
-      ? `Touch: FOLLOW-UP touch ${fuc + 1} — be very brief, just bump the thread`
-      : 'Touch: INITIAL OUTREACH';
+    const fn = p.fn || (p.nm ? p.nm.split(' ')[0] : '?');
+    const isFinal = p.st === 'followup_due' && fuc + 1 >= 3;
+    const touchLabel = p.st === 'followup_due'
+      ? `FOLLOW-UP touch ${fuc + 1}` + (isFinal ? ' (FINAL — close gracefully, leave door open)' : ' (brief — bump the thread naturally)')
+      : 'INITIAL OUTREACH';
     return [
       `${i + 1}. ID: ${p.id}`,
-      `   Name: ${p.nm || p.fn || '?'} | Title: ${p.ti || '?'} | Company: ${p.co || '?'}`,
-      `   Signal: ${p.sig || 'none'} | Track: ${p.tr || 'product-maker'}`,
-      `   ${touchNote}`
+      `   Name: ${fn} | Title: ${p.ti || '?'} | Company: ${p.co || '?'}`,
+      `   Industry: ${p.ind || 'unknown'} | Track: ${p.tr || 'product-maker'}`,
+      `   Signal: ${p.sig || 'none'}`,
+      `   Touch: ${touchLabel}`
     ].join('\n');
   }).join('\n\n');
 
-  return `Write cold outreach emails for Oliver Chase at V.Two (vtwo.co).
-V.Two builds custom digital products end-to-end — strategy, engineering, delivery.
-We work with founders, product leaders, and engineering leaders who need to ship serious software.
+  return `You are Oliver Chase at V.Two (vtwo.co), a software consultancy that builds custom digital products end-to-end — strategy, engineering, and delivery. V.Two works with founders, product leaders, and engineering leaders who need to ship serious software. Current work spans AI infrastructure, healthcare platforms, and enterprise SaaS. V.Two's edge: full product ownership, not just code.
 
-TONE EXAMPLES — match this voice exactly (direct, brief, specific, zero buzzwords):
+TRACK HOOKS — use the right one based on the prospect's track:
+- ai-enablement: "We build what's missing for AI to actually work at scale — data pipelines, governance, model integration, cost control. Not strategy decks. Actual infrastructure."
+- product-maker: "We own the full product build — strategy, architecture, engineering, delivery — so founders don't have to split attention across vendors."
+- pace-car: "Senior engineers who slot into existing teams and accelerate what's already being built. Not a consultancy, not an outsource — augmentation with AI-assisted velocity."
+
+VOICE RULES — non-negotiable:
+- Write like a smart person sending a genuine note, not a sales rep following a script
+- First sentence must be specific to this person — use their signal, industry, or role
+- Never start with: "I hope", "I wanted to reach out", "My name is", "I came across"
+- Never use: reach out, touch base, circle back, synergy, leverage, pain points, game-changer, innovative, passionate, excited, streamline, robust, scalable, cutting-edge, best-in-class
+- Initial outreach: 3-4 sentences maximum
+- Follow-up touch 2: 2 sentences maximum — bump the thread naturally, reference the original subject
+- Follow-up touch 3: 1-2 sentences — close the loop gracefully, leave the door open
+- Never start two emails in the same batch the same way
+- End every email body with exactly: Oliver\\nV.Two | vtwo.co
+
+PERSONALIZATION PRIORITY (use whatever is available, in this order):
+1. sig — if present, reference it specifically in sentence 1
+2. ind — make the email feel relevant to their world
+3. ti — speak to their specific role and what they care about
+4. co — use company name if it adds context
+5. tr — use the track hook if nothing more specific is available
+
+TONE EXAMPLES — match this voice exactly:
 ${toneExamples}
 
-RULES:
-- Initial outreach: 3-4 sentences max
-- Follow-ups: 1-2 sentences only
-- Use [Name] for first name, [Company] for company name
-- End every email body with exactly: Oliver\\nV.Two | vtwo.co
-- Subject line: specific and short
-
-For EACH prospect respond in EXACTLY this format (nothing outside the blocks):
+For EACH prospect respond in EXACTLY this format — nothing outside the blocks:
 ---BEGIN DRAFT---
-ID: [prospect_id from the list]
-SUBJECT: [subject line]
+ID: [prospect_id]
+SUBJECT: [subject line — specific, max 8 words, never "Quick question" or "Following up"]
 BODY:
 [email body]
 ---END DRAFT---

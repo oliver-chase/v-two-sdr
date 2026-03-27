@@ -96,53 +96,60 @@ function matchesIndex(candidate, index) {
 
 // ─── Build prompt ─────────────────────────────────────────────────────────────
 
-function buildPrompt(existingCount) {
-  var today = new Date().toISOString().split('T')[0];
-
-  var trackDescriptions = [
-    'ai-enablement: Enterprise CTO, Chief Data Officer, VP Engineering, Head of AI at companies using/evaluating LLMs, RAG, or data infrastructure (>100 employees, Series B-C)',
-    'product-maker: Founder, Co-Founder, CTO, VP Product at Series A-B SaaS companies actively shipping product (self-serve or SMB focus, 15-100 employees)',
-    'pace-car: VP Engineering, Head of Engineering, Director of Engineering at non-AI companies currently hiring engineers (fintech, healthtech, logistics, operations software, 30-200 employees)'
-  ].join('\n    ');
-
-  var schemaDescription = [
-    'nm: full name (e.g. "Sarah Chen")',
-    'fn: first name only (e.g. "Sarah")',
-    'ti: exact job title',
-    'co: company name',
-    'dm: company domain only, no protocol (e.g. "acme.com" or "acme.io")',
-    'em: realistic work email derived from dm (e.g. "sarah.chen@acme.com")',
-    'loc: city, state (e.g. "San Francisco, CA")',
-    'tz: IANA timezone (one of: America/New_York, America/Chicago, America/Denver, America/Los_Angeles)',
-    'ind: industry (e.g. "B2B SaaS", "Data Infrastructure", "Fintech", "AI/ML Platform")',
-    'tr: track (one of: ai-enablement, product-maker, pace-car)',
-    'no: 1-sentence signal note (e.g. "Series B startup scaling data team" or "YC W24, recently launched v2")'
-  ].join('\n    ');
-
+function buildPrompt() {
   var lines = [
-    'Generate exactly ' + TARGET_COUNT + ' B2B sales prospects for V.Two, a software engineering agency.',
+    'You are a senior B2B sales researcher. Generate realistic prospects for V.Two, a software consultancy that builds custom digital products end-to-end.',
     '',
-    'V.Two ICP:',
-    '- US-based companies, Series A-C or profitable independent',
-    '- 15-500 employees (sweet spot 30-200)',
-    '- B2B software, SaaS, enterprise software, data infrastructure, AI/ML',
-    '- Decision-maker contacts only (no junior engineers, no support staff)',
+    "V.Two's three ideal customer profiles:",
     '',
-    'Three tracks (distribute roughly evenly across all 25 prospects):',
-    '    ' + trackDescriptions,
+    'TRACK 1 — ai-enablement:',
+    'Who: CTOs, CDOs, VPs of Engineering, Heads of AI, Chief Data Officers',
+    'Company stage: 200-2000 employees, past Series B',
+    'Signals: Announced AI initiative in last 6 months, hiring AI/ML engineers, published about AI ROI challenges, raised growth round with AI focus, replatforming data infrastructure',
+    'Industries: Healthcare tech, fintech, enterprise SaaS, logistics, insurance tech, retail tech',
+    'NOT: pure AI startups building AI products, Big Tech, pre-revenue startups',
     '',
-    'For each prospect, output a JSON object with these fields:',
-    '    ' + schemaDescription,
+    'TRACK 2 — product-maker:',
+    'Who: Founders, Co-founders, CEOs (technical), CPOs, VPs of Product',
+    'Company stage: Seed to Series B, 10-150 employees, building core technical product',
+    'Signals: Raised funding in last 12 months, hiring first or second engineering lead, pivoting product, launching new product line, previous agency relationship ended',
+    'Industries: B2B SaaS, developer tools, vertical SaaS, climate tech, health tech, fintech',
+    'NOT: consumer apps, non-technical businesses, companies with 20+ person eng teams already',
     '',
-    'Rules:',
-    '- Use realistic but fictional people and companies (do not invent real individuals)',
-    '- Email patterns: firstname.lastname@company.com, first@company.com, or f.last@company.com',
-    '- Use varied companies — no two prospects at the same company',
-    '- Mix funding stages (some Series A, some B, some C)',
-    '- Mix locations across US metro areas',
-    '- Date added: ' + today,
+    'TRACK 3 — pace-car:',
+    'Who: VP Engineering, Engineering Manager, Director of Engineering, Head of Engineering',
+    'Company stage: 50-500 employees, scaling engineering organization',
+    'Signals: 3+ open senior engineering roles, recently promoted into role, post-acquisition integration, scaling from startup to enterprise processes, accelerating roadmap after funding',
+    'Industries: Any technical company',
+    'NOT: pre-product companies, companies with fewer than 5 engineers',
     '',
-    'Output ONLY a valid JSON array of ' + TARGET_COUNT + ' objects. No markdown, no explanation, no extra text.'
+    'GENERATION RULES:',
+    '- Generate plausible but fictional people — do NOT use names of real identifiable individuals',
+    '- Company names must sound like real companies — not TechCorp, Acme, FakeCo',
+    '- Signals must be specific and plausible — not "growing company", write "raised $18M Series B in Q4 2025, now hiring engineering leadership"',
+    '- Domains must be realistic — use .io, .com, .co matching what that company type would actually use',
+    '- Emails must be derived from the domain and name using standard patterns',
+    '- Mix of US cities weighted toward SF, NYC, Boston, Austin, Seattle, Chicago, Denver, Atlanta',
+    '- No two prospects from the same company in the same batch',
+    '- Distribute evenly across tracks',
+    '- Generate exactly ' + TARGET_COUNT + ' prospects',
+    '',
+    'Return ONLY a valid JSON array. No preamble, no explanation, no markdown fences. Each object must have exactly these fields:',
+    'fn, ln, ti, co, dm, em, loc, tz, ind, sig, tr, sz',
+    '',
+    'Field definitions:',
+    '  fn: first name only (e.g. "Sarah")',
+    '  ln: last name only (e.g. "Chen")',
+    '  ti: exact job title',
+    '  co: company name',
+    '  dm: domain only, no protocol (e.g. "acme.io")',
+    '  em: work email derived from dm (e.g. "sarah.chen@acme.io")',
+    '  loc: city, state (e.g. "San Francisco, CA")',
+    '  tz: IANA timezone (one of: America/New_York, America/Chicago, America/Denver, America/Los_Angeles)',
+    '  ind: industry (e.g. "Healthcare Tech", "B2B SaaS", "Fintech")',
+    '  sig: specific, plausible signal sentence — not generic (e.g. "Raised $22M Series B in Jan 2026, now scaling engineering from 8 to 20 engineers")',
+    '  tr: track (one of: ai-enablement, product-maker, pace-car)',
+    '  sz: employee count range (e.g. "50-100", "200-500")'
   ];
 
   return lines.join('\n');
@@ -151,7 +158,7 @@ function buildPrompt(existingCount) {
 // ─── Call Anthropic API ───────────────────────────────────────────────────────
 
 async function generateProspects(apiKey) {
-  var prompt = buildPrompt();
+  var prompt = buildPrompt();  // TARGET_COUNT is embedded in the prompt
 
   var response;
   try {
@@ -206,7 +213,7 @@ async function generateProspects(apiKey) {
 
 // ─── Validate a single prospect ───────────────────────────────────────────────
 
-var REQUIRED_FIELDS = ['nm', 'fn', 'ti', 'co', 'em', 'tr'];
+var REQUIRED_FIELDS = ['fn', 'ln', 'ti', 'co', 'em', 'tr'];
 var VALID_TRACKS = ['ai-enablement', 'product-maker', 'pace-car'];
 var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -231,11 +238,14 @@ function validateProspect(p, index) {
 function normalizeProspect(p, index) {
   var today = new Date().toISOString().split('T')[0];
   var id = 'ap-' + today + '-' + String(index + 1).padStart(3, '0');
+  var fn = p.fn.trim();
+  var ln = p.ln.trim();
 
   return {
     id:  id,
-    nm:  p.nm.trim(),
-    fn:  p.fn.trim(),
+    nm:  fn + ' ' + ln,
+    fn:  fn,
+    ln:  ln,
     ti:  p.ti.trim(),
     co:  p.co.trim(),
     dm:  (p.dm || '').toLowerCase().trim().replace(/^https?:\/\//i, '').replace(/\/.*/g, ''),
@@ -243,11 +253,12 @@ function normalizeProspect(p, index) {
     loc: (p.loc || '').trim(),
     tz:  (p.tz || '').trim(),
     ind: (p.ind || '').trim(),
+    sig: (p.sig || '').trim(),
     tr:  p.tr.trim(),
+    sz:  (p.sz || '').trim(),
     src: 'ai-generated',
     st:  'new',
-    da:  today,
-    no:  (p.no || '').trim()
+    da:  today
   };
 }
 
