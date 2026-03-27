@@ -21,8 +21,12 @@ const path = require('path');
 const { checkInbox, buildConfig } = require('./inbox-monitor');
 const { handleBounce } = require('./bounce-handler');
 const { GoogleSheetsConnector } = require('../sheets-connector');
+const { OAuthClient } = require('./oauth-client');
 const sheetsConfig = require('../config.sheets');
+const oauthConfig = require('../config/config.oauth');
 const { OOO_BUFFER_DAYS } = require('../config/sequences');
+
+const ALERT_RECIPIENT = 'oliver@vtwo.co';
 
 const PROSPECTS_FILE = path.join(__dirname, '..', 'prospects.json');
 
@@ -68,6 +72,63 @@ function calcNfu(bodyText) {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   return tomorrow.toISOString().split('T')[0];
+}
+
+// ─── Hot lead alert ───────────────────────────────────────────────────────────
+
+/**
+ * Send an immediate alert email to oliver@vtwo.co when a prospect replies positively.
+ * Logs a warning on failure — never throws.
+ */
+async function sendHotLeadAlert(prospect, replySnippet) {
+  if (!process.env.OUTLOOK_TENANT_ID || !process.env.OUTLOOK_CLIENT_ID || !process.env.OUTLOOK_CLIENT_SECRET) {
+    console.warn('[inbox] Hot lead alert skipped — Outlook OAuth env vars not set');
+    return;
+  }
+
+  var name = prospect.nm || prospect.fn || prospect.em || 'Unknown';
+  var subject = '[HOT LEAD] ' + name + ' replied positively';
+
+  var bodyStyle = 'font-family:system-ui,-apple-system,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#222';
+  var labelStyle = 'font-size:13px;color:#555;margin:4px 0';
+  var snippetStyle = 'background:#f0f7f0;border-left:3px solid #27ae60;padding:10px 14px;margin:16px 0;' +
+    'font-size:13px;white-space:pre-wrap;font-family:monospace';
+
+  var snippet = replySnippet ? replySnippet.slice(0, 500) : '(no snippet)';
+  var snipEscaped = snippet
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  var body = '<!DOCTYPE html><html><head><meta charset="utf-8"></head>' +
+    '<body style="' + bodyStyle + '">' +
+    '<h2 style="color:#27ae60;margin:0 0 16px;font-size:20px">Hot Lead Reply</h2>' +
+    '<p style="' + labelStyle + '"><strong>Name:</strong> ' + (prospect.nm || prospect.fn || '') + '</p>' +
+    '<p style="' + labelStyle + '"><strong>Title:</strong> ' + (prospect.ti || '') + '</p>' +
+    '<p style="' + labelStyle + '"><strong>Company:</strong> ' + (prospect.co || '') + '</p>' +
+    '<p style="' + labelStyle + '"><strong>Email:</strong> ' + (prospect.em || '') + '</p>' +
+    '<p style="font-size:13px;color:#555;margin:12px 0 4px"><strong>Reply snippet:</strong></p>' +
+    '<pre style="' + snippetStyle + '">' + snipEscaped + '</pre>' +
+    '<p style="font-size:12px;color:#aaa;margin-top:20px">SDR System — saturdaythings/v-two-sdr</p>' +
+    '</body></html>';
+
+  try {
+    var oauthClient = new OAuthClient(oauthConfig);
+    var result = await oauthClient.sendMailWithRetry({
+      to: ALERT_RECIPIENT,
+      subject: subject,
+      body: body,
+      from: 'Oliver SDR Bot',
+      isHtml: true
+    });
+    if (result.ok) {
+      console.log('[inbox] Hot lead alert sent for ' + prospect.em);
+    } else {
+      console.warn('[inbox] Hot lead alert failed: ' + result.error);
+    }
+  } catch (e) {
+    console.warn('[inbox] Hot lead alert error: ' + e.message);
+  }
 }
 
 // ─── Sheet write-back ─────────────────────────────────────────────────────────
@@ -140,6 +201,7 @@ async function main() {
       sheetUpdates.push({ em: prospect.em, st: 'closed_positive' });
       changed++;
       console.log(`[inbox] ${prospect.em} → closed_positive`);
+      await sendHotLeadAlert(prospect, reply.snippet || '');
 
     } else if (classification === 'negative' || classification === 'opt_out') {
       prospect.st = 'closed_negative';
@@ -192,4 +254,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { main, parseOooReturnDate, calcNfu };
+module.exports = { main, parseOooReturnDate, calcNfu, sendHotLeadAlert };
