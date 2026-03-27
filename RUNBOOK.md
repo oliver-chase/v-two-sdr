@@ -64,7 +64,7 @@ All secrets live in **GitHub → saturdaythings/v-two-sdr → Settings → Secre
 
 | Secret | Used By | What It Is |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | draft.js | Claude Haiku API key for batch drafting |
+| `ANTHROPIC_API_KEY` | draft.js, prospect.js | Claude API key (Haiku for drafting, Sonnet for prospecting) |
 | `OUTLOOK_TENANT_ID` | mailer.js, approval-email.js | Azure Entra ID tenant |
 | `OUTLOOK_CLIENT_ID` | mailer.js, approval-email.js | Azure app registration client ID |
 | `OUTLOOK_CLIENT_SECRET` | mailer.js, approval-email.js | Azure app registration secret |
@@ -75,7 +75,8 @@ All secrets live in **GitHub → saturdaythings/v-two-sdr → Settings → Secre
 | `HUNTER_IO_API_KEY` | enrichment-engine.js, bounce-handler.js | Hunter.io email verification |
 | `ABSTRACT_API_KEY` | enrichment-engine.js | Timezone lookup |
 | `SERPER_API_KEY` | enrichment-engine.js | Web search for enrichment signals |
-| `SDR_PAT` | approval-email.js, approval-handler.yml | GitHub PAT, `actions:write` scope only |
+| `SDR_TOKEN` | approval-email.js, cloudflare worker | Shared secret for approval link validation |
+| `WORKER_URL` | approval-email.js | Cloudflare Worker URL (default: https://sdr-approval.workers.dev) |
 
 **Loading locally:** Always use `node -r dotenv/config scripts/<script>.js` — never `source .env`. The PEM private key is multiline and breaks shell parsing.
 
