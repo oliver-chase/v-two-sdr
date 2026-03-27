@@ -30,19 +30,68 @@ const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_MODEL = 'claude-sonnet-4-6';
 const TARGET_COUNT = 25;
 
-// ─── Load existing prospects ──────────────────────────────────────────────────
+// ─── Deduplication ────────────────────────────────────────────────────────────
 
-function loadExistingEmails() {
+function loadLocalProspects() {
   try {
     if (fs.existsSync(PROSPECTS_FILE)) {
-      const data = JSON.parse(fs.readFileSync(PROSPECTS_FILE, 'utf8'));
-      const list = Array.isArray(data.prospects) ? data.prospects : [];
-      return new Set(list.map(function(p) { return (p.em || '').toLowerCase().trim(); }).filter(Boolean));
+      var data = JSON.parse(fs.readFileSync(PROSPECTS_FILE, 'utf8'));
+      return Array.isArray(data.prospects) ? data.prospects : [];
     }
   } catch (e) {
     console.warn('[prospect] Could not load prospects.json: ' + e.message);
   }
-  return new Set();
+  return [];
+}
+
+/**
+ * Extract the three dedup keys from a prospect object.
+ * Handles both nm (full name) and fn+ln (split name) formats.
+ */
+function extractDedupKeys(p) {
+  var email = (p.em || '').toLowerCase().trim();
+
+  var fullName = p.nm
+    ? p.nm.trim()
+    : ((p.fn || '') + ' ' + (p.ln || '')).trim();
+  var nameCompany = fullName.toLowerCase() + '|' + (p.co || '').toLowerCase().trim();
+
+  var firstName = p.fn
+    ? p.fn.toLowerCase().trim()
+    : fullName.toLowerCase().split(/\s+/)[0] || '';
+  var domainFirst = (p.dm || '').toLowerCase().trim() + '|' + firstName;
+
+  return { email, nameCompany, domainFirst };
+}
+
+/**
+ * Build a three-key dedup index from an array of prospects.
+ * Returns { emails, nameCompanies, domainFirstNames } — all Sets.
+ */
+function buildDedupIndex(prospects) {
+  var emails = new Set();
+  var nameCompanies = new Set();
+  var domainFirstNames = new Set();
+
+  prospects.forEach(function(p) {
+    var k = extractDedupKeys(p);
+    if (k.email) emails.add(k.email);
+    if (k.nameCompany && k.nameCompany !== '|') nameCompanies.add(k.nameCompany);
+    if (k.domainFirst && k.domainFirst !== '|') domainFirstNames.add(k.domainFirst);
+  });
+
+  return { emails, nameCompanies, domainFirstNames };
+}
+
+/**
+ * Return true if candidate matches any key in the given index.
+ */
+function matchesIndex(candidate, index) {
+  var k = extractDedupKeys(candidate);
+  if (k.email && index.emails.has(k.email)) return true;
+  if (k.nameCompany && k.nameCompany !== '|' && index.nameCompanies.has(k.nameCompany)) return true;
+  if (k.domainFirst && k.domainFirst !== '|' && index.domainFirstNames.has(k.domainFirst)) return true;
+  return false;
 }
 
 // ─── Build prompt ─────────────────────────────────────────────────────────────
@@ -229,11 +278,36 @@ async function main() {
     return;
   }
 
-  // Load existing emails for dedup
-  var existingEmails = loadExistingEmails();
-  console.log('[prospect] Existing prospects: ' + existingEmails.size);
+  var dryRun = process.env.DRY_RUN === 'true';
+  if (dryRun) {
+    console.log('[prospect] DRY_RUN=true — will log candidates but not write to Sheet');
+  }
 
-  // Generate candidates
+  // 1. Load local prospects.json
+  var localProspects = loadLocalProspects();
+  console.log('[prospect] Local prospects: ' + localProspects.length);
+
+  // 2. Try to read live Sheet for dedup — fall back to local-only on failure
+  var sheetProspects = [];
+  var sheetReadFailed = false;
+  try {
+    var readConnector = new GoogleSheetsConnector(
+      { google_sheets: { ...sheetsConfig.google_sheets, field_mapping: sheetsConfig.google_sheets.field_mapping } },
+      'write'
+    );
+    await readConnector.authenticate();
+    sheetProspects = await readConnector.readProspects();
+    console.log('[prospect] Live Sheet: ' + sheetProspects.length + ' existing prospect(s)');
+  } catch (e) {
+    sheetReadFailed = true;
+    console.warn('[prospect] Sheet read failed — falling back to local-only dedup: ' + e.message);
+  }
+
+  // 3. Build separate dedup indices so we can attribute skips to their source
+  var sheetIndex = buildDedupIndex(sheetProspects);
+  var localIndex = buildDedupIndex(localProspects);
+
+  // 4. Generate candidates
   var candidates;
   try {
     console.log('[prospect] Calling Claude Sonnet for ' + TARGET_COUNT + ' prospects...');
@@ -244,10 +318,12 @@ async function main() {
     return;
   }
 
-  // Validate, dedup, normalize
+  // 5. Validate, dedup, normalize
   var valid = [];
-  var dupeCount = 0;
   var invalidCount = 0;
+  var sheetDupeCount = 0;
+  var localDupeCount = 0;
+  var batchCompanies = new Set(); // within-batch company dedup
 
   candidates.forEach(function(candidate, i) {
     var err = validateProspect(candidate, i);
@@ -256,24 +332,55 @@ async function main() {
       invalidCount++;
       return;
     }
-    var email = candidate.em.toLowerCase().trim();
-    if (existingEmails.has(email)) {
-      console.log('[prospect] Dupe skipped: ' + email);
-      dupeCount++;
+
+    // Check against Sheet index first (authoritative), then local
+    if (matchesIndex(candidate, sheetIndex)) {
+      sheetDupeCount++;
       return;
     }
-    existingEmails.add(email);
-    valid.push(normalizeProspect(candidate, valid.length));
+    if (matchesIndex(candidate, localIndex)) {
+      localDupeCount++;
+      return;
+    }
+
+    // Within-batch: skip if same company already queued
+    var coKey = (candidate.co || '').toLowerCase().trim();
+    if (coKey && batchCompanies.has(coKey)) {
+      console.log('[prospect] Batch dupe skipped (same company): ' + candidate.co);
+      localDupeCount++;
+      return;
+    }
+
+    var normalized = normalizeProspect(candidate, valid.length);
+    valid.push(normalized);
+    batchCompanies.add(coKey);
+
+    // Add to local index so later candidates in the same batch can't dupe against this one
+    var k = extractDedupKeys(normalized);
+    if (k.email) localIndex.emails.add(k.email);
+    if (k.nameCompany && k.nameCompany !== '|') localIndex.nameCompanies.add(k.nameCompany);
+    if (k.domainFirst && k.domainFirst !== '|') localIndex.domainFirstNames.add(k.domainFirst);
   });
 
-  console.log('[prospect] Valid new prospects: ' + valid.length + ' (invalid: ' + invalidCount + ', dupes: ' + dupeCount + ')');
+  var totalDupes = sheetDupeCount + localDupeCount;
+  var sourceNote = sheetReadFailed ? '(local-only — Sheet read failed)' : '(' + sheetDupeCount + ' from Sheet, ' + localDupeCount + ' from local)';
+  console.log('[prospect] Dedup: ' + candidates.length + ' generated, ' + totalDupes + ' duplicates skipped ' + sourceNote + ', ' + valid.length + ' new prospects added');
 
   if (valid.length === 0) {
     console.log('[prospect] Nothing to append — done');
     return;
   }
 
-  // Append to Sheet
+  // 6. DRY_RUN: log and stop
+  if (dryRun) {
+    valid.forEach(function(p) {
+      console.log('[prospect] DRY_RUN would add: ' + p.nm + ' <' + p.em + '> @ ' + p.co + ' [' + p.tr + ']');
+    });
+    console.log('[prospect] DRY_RUN complete — no Sheet writes');
+    return;
+  }
+
+  // 7. Append to Sheet
   try {
     console.log('[prospect] Appending ' + valid.length + ' prospects to Sheet...');
     await appendToSheet(valid);
@@ -290,4 +397,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { main, buildPrompt, validateProspect, normalizeProspect };
+module.exports = { main, buildPrompt, validateProspect, normalizeProspect, buildDedupIndex, extractDedupKeys, matchesIndex };
