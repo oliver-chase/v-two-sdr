@@ -69,6 +69,11 @@ const config = {
     ]
   },
 
+  // Local-only TOON fields (not mapped to Sheet columns — managed by scripts only)
+  // tried_patterns: array of email addresses that have bounced for a prospect.
+  //   Used by bounce-handler.js to cycle through untried email patterns.
+  //   Preserved across syncs via STATE_FIELDS in sync.js.
+
   // Sync Options
   sync: {
     excludeOptOuts: true,

@@ -1,48 +1,59 @@
 'use strict';
 
 /**
- * scripts/bounce-handler.js — Handle email bounces
+ * scripts/bounce-handler.js — Handle email bounces with pattern cycling
  *
  * Called by inbox.js when a bounce is detected. Strategy:
  *
- * 1. Generate alternate email candidates from prospect name + domain
- *    (using enrichment-engine's generateEmailCandidates)
- * 2. Verify each candidate via Hunter.io, skipping the bounced address
- * 3. If any candidate scores >= 80 (Hunter confidence 0–100):
- *    - Update prospect.em to the new address
- *    - Log: manual Sheet update required (em is a protected field)
- *    - Set status → email_discovered (re-enters draft queue)
- * 4. If no valid alternate found:
- *    - Set status → bounced_no_alt (terminal)
+ * 1. Record the bounced email in prospect.tried_patterns (persistent across bounces)
+ * 2. Resolve domain: prospect.dm first, then extract from bounced email
+ * 3. MX-check the domain — if no MX records, mark bounced_no_alt immediately (free check)
+ * 4. Get untried candidates (all patterns minus tried_patterns)
+ * 5. If untried candidates remain and this is NOT the last one:
+ *    - Set prospect.em to the next untried pattern, st → email_discovered
+ *    - No Hunter call (let the bounce mechanism confirm it)
+ * 6. If this is the LAST untried candidate:
+ *    - Hunter-verify it before committing (one API credit to avoid a guaranteed bounce)
+ *    - If verified: use it, st → email_discovered
+ *    - If not verified: bounced_no_alt
+ * 7. If no untried candidates left: bounced_no_alt
  *
- * Returns the (mutated) prospect.
+ * Result: Hunter is called at most once per prospect (last candidate only),
+ * vs. previously being called for every candidate on every bounce.
  */
 
 const { verifyEmail } = require('./hunter-verifier');
-const { generateEmailCandidates } = require('./enrichment-engine');
+const { generateEmailCandidates, validateMXRecord } = require('./enrichment-engine');
 
-const CONFIDENCE_THRESHOLD = 80; // Hunter score 0–100
+const HUNTER_SCORE_THRESHOLD = 80; // Hunter confidence score 0–100
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
- * Extract first name, last name, and domain from a prospect.
- * Returns null if we don't have enough info to generate candidates.
+ * Extract first name, last name from a prospect.
+ * Returns null if insufficient name data.
  */
-function extractParts(prospect) {
-  const em = prospect.em || '';
-  const domain = em.includes('@') ? em.split('@')[1] : null;
-  if (!domain) return null;
-
-  // Try to split nm into fn/ln
-  const nm = prospect.nm || '';
-  const parts = nm.trim().split(/\s+/);
-  const fn = prospect.fn || parts[0] || '';
-  const ln = prospect.ln || (parts.length > 1 ? parts[parts.length - 1] : '');
-
+function extractName(prospect) {
+  var nm = prospect.nm || '';
+  var parts = nm.trim().split(/\s+/);
+  var fn = prospect.fn || parts[0] || '';
+  var ln = prospect.ln || (parts.length > 1 ? parts[parts.length - 1] : '');
   if (!fn || !ln) return null;
+  return { fn: fn, ln: ln };
+}
 
-  return { fn, ln, domain };
+/**
+ * Resolve the domain to use for candidate generation.
+ * Prefers explicit prospect.dm, falls back to domain of bounced email.
+ */
+function resolveDomain(prospect) {
+  if (prospect.dm) {
+    return prospect.dm.toLowerCase().trim()
+      .replace(/^https?:\/\//i, '')
+      .replace(/\/.*/g, '');
+  }
+  var em = prospect.em || '';
+  return em.includes('@') ? em.split('@')[1] : null;
 }
 
 // ─── Main export ──────────────────────────────────────────────────────────────
@@ -54,51 +65,93 @@ function extractParts(prospect) {
  * @returns {Promise<Object>} Updated prospect
  */
 async function handleBounce(prospect) {
-  const bouncedEmail = prospect.em;
-  console.log(`[bounce-handler] Bounce on ${bouncedEmail} — searching for alternate`);
+  var bouncedEmail = prospect.em;
+  console.log('[bounce-handler] Bounce on ' + bouncedEmail + ' — searching for alternate');
 
-  const parts = extractParts(prospect);
-  if (!parts) {
-    console.warn(`[bounce-handler] Not enough name/domain info for ${bouncedEmail} — marking bounced_no_alt`);
+  // 1. Track bounced email in tried_patterns
+  var tried = Array.isArray(prospect.tried_patterns) ? prospect.tried_patterns.slice() : [];
+  var bouncedLower = bouncedEmail.toLowerCase();
+  if (!tried.includes(bouncedLower)) {
+    tried.push(bouncedLower);
+  }
+  prospect.tried_patterns = tried;
+
+  // 2. Resolve domain
+  var domain = resolveDomain(prospect);
+  if (!domain) {
+    console.warn('[bounce-handler] Cannot resolve domain for ' + bouncedEmail + ' — bounced_no_alt');
     prospect.st = 'bounced_no_alt';
     return prospect;
   }
 
-  const { fn, ln, domain } = parts;
-  const candidates = generateEmailCandidates(fn, ln, domain);
+  // 3. MX check — bail immediately if domain is dead (free, no API cost)
+  var mxResult;
+  try {
+    mxResult = await validateMXRecord(domain);
+  } catch (e) {
+    console.warn('[bounce-handler] MX check failed for ' + domain + ': ' + e.message + ' — skipping MX gate');
+    mxResult = { valid: true }; // assume valid if check errors, let the send attempt decide
+  }
 
-  // Filter out the bounced address and already-seen patterns
-  const toTry = candidates.filter(c => c.em.toLowerCase() !== bouncedEmail.toLowerCase());
-
-  if (toTry.length === 0) {
-    console.warn(`[bounce-handler] No alternate candidates for ${bouncedEmail} — marking bounced_no_alt`);
+  if (!mxResult.valid) {
+    console.warn('[bounce-handler] Domain ' + domain + ' has no MX records — bounced_no_alt');
     prospect.st = 'bounced_no_alt';
     return prospect;
   }
 
-  for (const candidate of toTry) {
-    let result;
+  // 4. Extract name for candidate generation
+  var nameParts = extractName(prospect);
+  if (!nameParts) {
+    console.warn('[bounce-handler] Insufficient name data for ' + bouncedEmail + ' — bounced_no_alt');
+    prospect.st = 'bounced_no_alt';
+    return prospect;
+  }
+
+  var candidates = generateEmailCandidates(nameParts.fn, nameParts.ln, domain);
+
+  // 5. Filter out already-tried addresses
+  var untried = candidates.filter(function(c) {
+    return !tried.includes(c.em.toLowerCase());
+  });
+
+  if (untried.length === 0) {
+    console.log('[bounce-handler] All ' + candidates.length + ' pattern(s) tried — bounced_no_alt');
+    prospect.st = 'bounced_no_alt';
+    return prospect;
+  }
+
+  var isLastCandidate = untried.length === 1;
+  var next = untried[0];
+
+  // 6. If this is the last untried candidate, verify with Hunter before committing
+  if (isLastCandidate) {
+    console.log('[bounce-handler] Last candidate: ' + next.em + ' — verifying with Hunter');
+    var result;
     try {
-      result = await verifyEmail(candidate.em);
+      result = await verifyEmail(next.em);
     } catch (e) {
-      console.warn(`[bounce-handler] Verify error for ${candidate.em}: ${e.message}`);
-      continue;
+      console.warn('[bounce-handler] Hunter verify error for ' + next.em + ': ' + e.message);
+      result = { success: false };
     }
 
-    if (!result.success) continue;
-
-    if (result.score >= CONFIDENCE_THRESHOLD) {
-      console.log(`[bounce-handler] Alternate found: ${candidate.em} (score: ${result.score})`);
-      console.log(`[bounce-handler] NOTE: Update Sheet email for prospect ${prospect.id} from ${bouncedEmail} → ${candidate.em}`);
-
-      prospect.em = candidate.em;
-      prospect.st = 'email_discovered';
+    if (!result.success || result.score < HUNTER_SCORE_THRESHOLD) {
+      console.log('[bounce-handler] Hunter rejected ' + next.em +
+        ' (score: ' + (result.score || 0) + ') — bounced_no_alt');
+      prospect.st = 'bounced_no_alt';
       return prospect;
     }
+
+    console.log('[bounce-handler] Hunter confirmed ' + next.em + ' (score: ' + result.score + ')');
   }
 
-  console.log(`[bounce-handler] No alternate with score >= ${CONFIDENCE_THRESHOLD} — marking bounced_no_alt`);
-  prospect.st = 'bounced_no_alt';
+  // 7. Advance to next untried pattern
+  console.log('[bounce-handler] Next pattern: ' + next.em +
+    ' (' + (untried.length - 1) + ' more untried after this)');
+  console.log('[bounce-handler] NOTE: Update Sheet email for prospect ' +
+    prospect.id + ' from ' + bouncedEmail + ' \u2192 ' + next.em);
+
+  prospect.em = next.em;
+  prospect.st = 'email_discovered';
   return prospect;
 }
 
