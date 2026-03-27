@@ -10,4 +10,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: echo "hello from daily-sync"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Run sync
+        env:
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          GOOGLE_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_EMAIL }}
+          GOOGLE_PRIVATE_KEY: ${{ secrets.GOOGLE_PRIVATE_KEY }}
+          HUNTER_IO_API_KEY: ${{ secrets.HUNTER_IO_API_KEY }}
+          ABSTRACT_API_KEY: ${{ secrets.ABSTRACT_API_KEY }}
+        run: node scripts/sync.js
+
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "sync: prospects updated"

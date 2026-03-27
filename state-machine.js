@@ -3,10 +3,19 @@
  * Enforces legal state transitions, logs violations, persists to JSON and Google Sheets
  *
  * State Graph:
- * new → email_discovered → draft_generated → awaiting_approval → email_sent → replied → closed_positive/negative
+ * new → email_discovered → draft_generated → awaiting_approval → email_sent
  *                                                ↓
  *                                         draft_generated (rejection/regen)
- *                          any state → closed_negative (opt-out/manual)
+ *
+ * Follow-up sequence (from email_sent):
+ *   email_sent → followup_due → draft_generated → ... → email_sent (next touch)
+ *   email_sent → ooo_pending → followup_due (when nfu date reached)
+ *   email_sent → closed_no_reply (after touch 3 + 7 days — day 19)
+ *
+ * Reply handling (from email_sent):
+ *   email_sent → replied → closed_positive / closed_negative
+ *
+ * any state → closed_negative (opt-out / manual override)
  */
 
 const fs = require('fs');
@@ -22,9 +31,12 @@ class StateMachine {
     'draft_generated',
     'awaiting_approval',
     'email_sent',
+    'followup_due',
+    'ooo_pending',
     'replied',
     'closed_positive',
-    'closed_negative'
+    'closed_negative',
+    'closed_no_reply'
   ];
 
   static VALID_TRANSITIONS = {
@@ -32,10 +44,13 @@ class StateMachine {
     'email_discovered': ['draft_generated'],
     'draft_generated': ['awaiting_approval', 'draft_generated'],
     'awaiting_approval': ['email_sent', 'draft_generated'],
-    'email_sent': ['replied', 'closed_positive', 'closed_negative'],
+    'email_sent': ['replied', 'closed_positive', 'closed_negative', 'followup_due', 'ooo_pending', 'closed_no_reply'],
+    'followup_due': ['draft_generated', 'closed_no_reply'],
+    'ooo_pending': ['followup_due', 'closed_negative'],
     'replied': ['closed_positive', 'closed_negative'],
     'closed_positive': [],
-    'closed_negative': []
+    'closed_negative': [],
+    'closed_no_reply': []
   };
 
   /**
@@ -295,7 +310,7 @@ class StateMachine {
    * @returns {Array} Active prospects
    */
   getActivePipeline() {
-    const activeStates = ['new', 'email_discovered', 'draft_generated', 'awaiting_approval', 'email_sent', 'replied'];
+    const activeStates = ['new', 'email_discovered', 'draft_generated', 'awaiting_approval', 'email_sent', 'followup_due', 'ooo_pending', 'replied'];
     return this.state.prospects.filter(p => activeStates.includes(p.st));
   }
 

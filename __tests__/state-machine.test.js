@@ -67,7 +67,7 @@ describe('StateMachine', () => {
   });
 
   describe('State definitions', () => {
-    test('should define all 8 valid states', () => {
+    test('should define all valid states', () => {
       const validStates = StateMachine.VALID_STATES;
       expect(validStates).toEqual([
         'new',
@@ -75,9 +75,12 @@ describe('StateMachine', () => {
         'draft_generated',
         'awaiting_approval',
         'email_sent',
+        'followup_due',
+        'ooo_pending',
         'replied',
         'closed_positive',
-        'closed_negative'
+        'closed_negative',
+        'closed_no_reply'
       ]);
     });
 
