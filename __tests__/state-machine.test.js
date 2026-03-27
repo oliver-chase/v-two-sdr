@@ -80,7 +80,8 @@ describe('StateMachine', () => {
         'replied',
         'closed_positive',
         'closed_negative',
-        'closed_no_reply'
+        'closed_no_reply',
+        'bounced_no_alt'
       ]);
     });
 

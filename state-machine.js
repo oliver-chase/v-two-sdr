@@ -36,7 +36,8 @@ class StateMachine {
     'replied',
     'closed_positive',
     'closed_negative',
-    'closed_no_reply'
+    'closed_no_reply',
+    'bounced_no_alt'
   ];
 
   static VALID_TRANSITIONS = {
@@ -44,13 +45,14 @@ class StateMachine {
     'email_discovered': ['draft_generated'],
     'draft_generated': ['awaiting_approval', 'draft_generated'],
     'awaiting_approval': ['email_sent', 'draft_generated'],
-    'email_sent': ['replied', 'closed_positive', 'closed_negative', 'followup_due', 'ooo_pending', 'closed_no_reply'],
-    'followup_due': ['draft_generated', 'closed_no_reply'],
+    'email_sent': ['replied', 'closed_positive', 'closed_negative', 'followup_due', 'ooo_pending', 'closed_no_reply', 'bounced_no_alt', 'email_discovered'],
+    'followup_due': ['draft_generated', 'closed_no_reply', 'bounced_no_alt', 'email_discovered'],
     'ooo_pending': ['followup_due', 'closed_negative'],
     'replied': ['closed_positive', 'closed_negative'],
     'closed_positive': [],
     'closed_negative': [],
-    'closed_no_reply': []
+    'closed_no_reply': [],
+    'bounced_no_alt': []
   };
 
   /**
