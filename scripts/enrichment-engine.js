@@ -431,11 +431,14 @@ async function enrichProspect(prospect, cache = null) {
   // Step 1: Email validation/generation
   if (!enriched.em || !validateEmailFormat(enriched.em)) {
     if (enriched.fn && enriched.ln) {
-      // Extract domain from company name if available
+      // Prefer explicit domain field; fall back to stripping company name
       let domain = null;
-      if (enriched.co) {
-        // Attempt to construct domain from company name
-        // e.g., "Example Corp" -> "example.com" or "examplecorp.com"
+      if (enriched.dm) {
+        domain = enriched.dm.toLowerCase().trim()
+          .replace(/^https?:\/\//i, '')
+          .replace(/\/.*/g, '');
+      } else if (enriched.co) {
+        // Best-effort: strip non-word chars and append .com
         domain = enriched.co
           .toLowerCase()
           .replace(/\s+/g, '')

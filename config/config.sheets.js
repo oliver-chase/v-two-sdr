@@ -25,6 +25,7 @@ const config = {
       'Name': 'nm',              // Prospect name
       'Title': 'ti',             // Job title
       'Company': 'co',           // Company name
+      'Domain': 'dm',            // Company domain (e.g. acme.com)
       'Email': 'em',             // Email address
       'City': 'loc',             // Location (city)
       'Timezone': 'tz',          // Timezone (IANA format)

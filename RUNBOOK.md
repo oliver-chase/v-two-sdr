@@ -183,6 +183,8 @@ inbox.js scans IMAP twice daily (9 AM + 3 PM ET) and routes by classification:
 
 - The `field_mapping` in `config.sheets.js` must match the exact column headers in the Sheet.
 - If Kiana renamed a column, update the mapping key in `config.sheets.js` and commit.
+- Required Sheet columns: Name, Title, Company, Domain, Email, City, Timezone, Industry, Source, Status, Date Added, Notes.
+  Add a `Domain` column if it doesn't exist — enrichment-engine uses it for accurate email generation.
 
 ### Tests failing
 
