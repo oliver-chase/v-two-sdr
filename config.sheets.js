@@ -2,8 +2,8 @@
  * Google Sheets Configuration
  *
  * Reads from the "V.Two SDR - Master Lead Repository" spreadsheet.
- * Uses a Google API key (read access). Sheet must be shared:
- *   "Anyone with the link can view"
+ * Uses service account credentials (GOOGLE_SERVICE_ACCOUNT_EMAIL + GOOGLE_PRIVATE_KEY)
+ * for both reads and writes — no API key required.
  */
 
 const path = require('path');
@@ -13,10 +13,6 @@ const config = {
   google_sheets: {
     // Sheet ID from Google Sheet URL: https://docs.google.com/spreadsheets/d/{SHEET_ID}/edit
     sheet_id: process.env.GOOGLE_SHEET_ID || '1bAruz-w1e45Zlgy7gWL2qTHx7eqIufpn4ok9GpPTcg0',
-
-    // Google Cloud API key (restricted to Sheets API)
-    // Set as GOOGLE_API_KEY env var or GitHub Secret
-    api_key: process.env.GOOGLE_API_KEY || '',
 
     // Tab name within the spreadsheet (the data tab)
     sheet_name: process.env.GOOGLE_SHEET_NAME || 'Leads',
@@ -62,11 +58,13 @@ const config = {
       'draft_generated',
       'awaiting_approval',
       'email_sent',
+      'followup_due',
+      'ooo_pending',
       'replied',
       'closed_positive',
       'closed_negative',
-      'opted_out',
-      'bounced'
+      'closed_no_reply',
+      'bounced_no_alt'
     ]
   },
 

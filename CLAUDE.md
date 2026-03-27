@@ -1,32 +1,43 @@
 # Claude Code Guide — SDR Project
 
-## Start Here
-Read `~/OliverRepo/agents/CLAUDE.md` first for startup sequence, models, and repo map.
-
 ## What is SDR?
-Automated B2B sales outreach via email. AI-generated sequences, lead research, Google Sheets integration.
+Automated B2B cold outreach via email. GitHub Actions runs the daily pipeline.
+Claude Code does all code, tests, and git. No other agents involved.
+
+## Source of Truth
+- `REDESIGN.md` — architecture decisions and why
+- `RUNBOOK.md` — how to operate the system day-to-day
 
 ## Tech Stack
-- Node.js (Express), Jest (375/375 tests passing)
-- Google Sheets (prospects), GitHub Actions (daily orchestration)
-- Outlook SMTP/IMAP
+- Node.js, Jest (287/287 tests passing)
+- Google Sheets (prospect source of truth), GitHub Actions (orchestration)
+- Outlook/Microsoft Graph (email send + IMAP)
+- Anthropic Claude Haiku (batched draft generation, falls back to static templates)
 - Repo: `saturdaythings/v-two-sdr`
 
-## Your Role (Claude Code)
+## Your Role
 ✅ Code, tests, git, architecture decisions
-❌ Real-time API calls, email sends, Sheets OAuth, web scraping — those are OpenClaw
+✅ Running scripts locally with `node -r dotenv/config scripts/<script>.js`
 
-## Key Files
-- `PROGRESS.md` — current task status
-- `MASTER.md` — full brief
-- `scripts/daily-run.js` — main orchestration
-- `scripts/` — all Node.js logic
+## Key Scripts
+- `scripts/sync.js` — pull Sheet, merge state, run scheduler, write prospects.json
+- `scripts/draft.js` — batch LLM call, write outreach/drafts/YYYY-MM-DD.json
+- `scripts/approval-email.js` — send digest email with approve/reject curl commands
+- `scripts/handle-approval.js` — process approve/reject, trigger send
+- `scripts/send.js` — send all approved drafts via Outlook
+- `scripts/inbox.js` — IMAP scan, classify replies, update state
+
+## Workflows
+- `daily-sync.yml` — 7:00 AM ET Mon-Fri
+- `daily-draft.yml` — 7:30 AM ET Mon-Fri
+- `approval-handler.yml` — triggered by curl from approval email
+- `send-approved.yml` — triggered on approval + 10 AM ET cron
+- `inbox-check.yml` — 9:00 AM + 3:00 PM ET Mon-Fri
 
 ## Startup
 ```bash
 cd ~/OliverRepo/workspaces/work/projects/SDR
-cat PROGRESS.md
-cat CHECKPOINT.md
+cat RUNBOOK.md
 ```
 
-**Last Updated:** 2026-03-24
+**Last Updated:** 2026-03-27

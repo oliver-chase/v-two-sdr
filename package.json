@@ -7,13 +7,11 @@
     "test": "jest --coverage",
     "test:watch": "jest --watch",
     "validate": "node scripts/validate-prospects.js",
-    "sync": "node scripts/sync-from-sheets.js",
-    "daily": "node scripts/daily-run.js",
-    "draft": "node scripts/draft-emails.js",
-    "approve": "node scripts/approve-drafts.js",
-    "send": "node scripts/send-approved.js",
-    "send:dry": "node scripts/send-approved.js --dry-run",
-    "inbox": "node scripts/inbox-monitor.js"
+    "sync": "node -r dotenv/config scripts/sync.js",
+    "draft": "node -r dotenv/config scripts/draft.js",
+    "send": "node -r dotenv/config scripts/send.js",
+    "inbox": "node -r dotenv/config scripts/inbox.js",
+    "approval-email": "node -r dotenv/config scripts/approval-email.js"
   },
   "keywords": [
     "sdr",
