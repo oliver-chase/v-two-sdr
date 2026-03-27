@@ -107,10 +107,10 @@ function mergeProspects(sheetProspects, localProspects) {
 async function main() {
   console.log('[sync] Starting daily sync...');
 
-  // 1. Pull from Google Sheet
-  const reader = new GoogleSheetsConnector(connectorConfig(), 'read');
-  await reader.authenticate();
-  const sheetProspects = await reader.readProspects();
+  // 1. Pull from Google Sheet (service account handles both read and write)
+  const connector = new GoogleSheetsConnector(connectorConfig(), 'write');
+  await connector.authenticate();
+  const sheetProspects = await connector.readProspects();
   console.log(`[sync] Read ${sheetProspects.length} prospect(s) from Sheet`);
 
   // 2. Merge with local state
@@ -144,15 +144,13 @@ async function main() {
   console.log(`[sync] Scheduler: ${flagged} follow-up(s) flagged, ${closed} closed`);
 
   // 5. Write status changes back to Sheet (scheduler-driven changes only)
-  const writer = new GoogleSheetsConnector(connectorConfig(), 'write');
-  await writer.authenticate();
   let writeCount = 0;
   for (const p of prospects) {
     if (!p.em) continue;
     const prev = stateAfterMerge.get(p.em.toLowerCase());
     if (prev !== undefined && prev !== p.st) {
       try {
-        await writer.updateProspectStatus(p.em, p.st);
+        await connector.updateProspectStatus(p.em, p.st);
         writeCount++;
       } catch (e) {
         console.warn(`[sync] Sheet write failed for ${p.em}: ${e.message}`);
