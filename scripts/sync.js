@@ -24,7 +24,7 @@ const PROSPECTS_FILE = path.join(__dirname, '..', 'prospects.json');
 // Fields Kiana owns — sheet always wins when non-blank
 const PROTECTED_FIELDS = ['nm', 'ti', 'co', 'em'];
 // State tracking fields — keep local value when sheet cell is blank
-const STATE_FIELDS = ['st', 'lc', 'fc', 'fuc', 'nfu'];
+const STATE_FIELDS = ['st', 'lc', 'fc', 'fuc', 'nfu', 'city', 'state', 'country', 'sz', 'rev', 'ind', 'sc', 'tc', 'fourthc', 'fifthc'];
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 

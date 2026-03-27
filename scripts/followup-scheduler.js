@@ -52,12 +52,29 @@ function scheduleFollowups(prospects) {
 
   for (const p of prospects) {
     if (p.st === 'email_sent') {
-      const days = daysSince(p.lc);
-      if (days === null) continue;
+      // Use explicit contact date columns (most recent touch first).
+      // Fall back to lc + fuc if no date columns are set yet.
+      let refDate = null;
+      let entry = null;
 
-      const fuc = parseInt(p.fuc, 10) || 1;
-      const entry = TOUCH_SCHEDULE.find(s => s.afterTouch === fuc);
-      if (!entry) continue; // fuc beyond schedule — ignore
+      if (p.tc) {
+        refDate = p.tc;
+        entry = TOUCH_SCHEDULE.find(function(s) { return s.afterTouch === 3; });
+      } else if (p.sc) {
+        refDate = p.sc;
+        entry = TOUCH_SCHEDULE.find(function(s) { return s.afterTouch === 2; });
+      } else if (p.fc) {
+        refDate = p.fc;
+        entry = TOUCH_SCHEDULE.find(function(s) { return s.afterTouch === 1; });
+      } else {
+        refDate = p.lc;
+        const fuc = parseInt(p.fuc, 10) || 1;
+        entry = TOUCH_SCHEDULE.find(function(s) { return s.afterTouch === fuc; });
+      }
+
+      if (!entry || !refDate) continue;
+      const days = daysSince(refDate);
+      if (days === null) continue;
 
       if (days >= entry.waitDays) {
         if (entry.close) {

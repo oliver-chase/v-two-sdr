@@ -23,28 +23,29 @@ const config = {
   },
 
   // Field mapping: Google Sheet column → TOON abbreviation
-  // Columns in order: Name | Title | Company | Email | Location | Timezone | LinkedIn |
-  //   Company Size | Industry | Funding | Signal | Source | Status |
-  //   Date Added | First Contact | Last Contact | Follow-Up Count | Next Follow-Up | Notes
+  // Columns in order match the actual "Leads" tab exactly
   field_mapping: {
-    'Name': 'nm',              // Full name — fn (first name) derived automatically
+    'Name': 'nm',
     'Title': 'ti',
     'Company': 'co',
+    'Domain': 'dm',
     'Email': 'em',
-    'Location': 'loc',
+    'City': 'city',
+    'State': 'state',
+    'Country': 'country',
     'Timezone': 'tz',
-    'LinkedIn': 'li',
     'Company Size': 'sz',
+    'Annual Revenue': 'rev',
     'Industry': 'ind',
-    'Funding': 'fnd',
-    'Signal': 'sig',           // Intent signal: why they're a prospect
     'Source': 'src',
     'Status': 'st',
     'Date Added': 'da',
-    'First Contact': 'fc',
-    'Last Contact': 'lc',
-    'Follow-Up Count': 'fuc',
-    'Next Follow-Up': 'nfu',
+    'Next Contact Date': 'nfu',
+    'First Contact Date': 'fc',
+    'Second Contact Date': 'sc',
+    'Third Contact Date': 'tc',
+    'Fourth Contact Date': 'fourthc',
+    'Fifth Contact Date': 'fifthc',
     'Notes': 'no'
   },
 

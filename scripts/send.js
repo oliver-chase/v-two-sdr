@@ -105,9 +105,15 @@ async function main() {
       // Update prospect in memory
       const pi = prospects.findIndex(p => p.id === draft.prospect_id);
       if (pi !== -1) {
+        const today = new Date().toISOString().split('T')[0];
         prospects[pi].st = 'email_sent';
-        prospects[pi].lc = new Date().toISOString().split('T')[0];
+        prospects[pi].lc = today;
         prospects[pi].fuc = (parseInt(prospects[pi].fuc, 10) || 0) + 1;
+        // Write explicit contact date for this touch
+        const newFuc = prospects[pi].fuc;
+        if (newFuc === 1) prospects[pi].fc = today;
+        else if (newFuc === 2) prospects[pi].sc = today;
+        else if (newFuc === 3) prospects[pi].tc = today;
         sentProspects.push(prospects[pi]);
       }
     } else {

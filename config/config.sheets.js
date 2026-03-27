@@ -22,18 +22,28 @@ const config = {
     // Explicit Field Mapping: TOON → Sheet Column Headers
     // This ensures consistent mapping regardless of column order
     field_mapping: {
-      'Name': 'nm',              // Prospect name
-      'Title': 'ti',             // Job title
-      'Company': 'co',           // Company name
-      'Domain': 'dm',            // Company domain (e.g. acme.com)
-      'Email': 'em',             // Email address
-      'City': 'loc',             // Location (city)
-      'Timezone': 'tz',          // Timezone (IANA format)
-      'Industry': 'ind',         // Industry vertical
-      'Source': 'src',           // Lead source
-      'Status': 'st',            // Prospect status (new, contacted, interested, etc.)
-      'Date Added': 'da',        // Date prospect added
-      'Notes': 'no'              // Enrichment notes
+      'Name': 'nm',
+      'Title': 'ti',
+      'Company': 'co',
+      'Domain': 'dm',
+      'Email': 'em',
+      'City': 'city',
+      'State': 'state',
+      'Country': 'country',
+      'Timezone': 'tz',
+      'Company Size': 'sz',
+      'Annual Revenue': 'rev',
+      'Industry': 'ind',
+      'Source': 'src',
+      'Status': 'st',
+      'Date Added': 'da',
+      'Next Contact Date': 'nfu',
+      'First Contact Date': 'fc',
+      'Second Contact Date': 'sc',
+      'Third Contact Date': 'tc',
+      'Fourth Contact Date': 'fourthc',
+      'Fifth Contact Date': 'fifthc',
+      'Notes': 'no'
     },
 
     // Protected Fields (read-only after prospect created)
@@ -48,7 +58,13 @@ const config = {
 
     // Writable Fields (can be updated after enrichment)
     writable_fields: [
+      'Domain',
+      'City',
+      'State',
+      'Country',
       'Timezone',
+      'Company Size',
+      'Annual Revenue',
       'Industry',
       'Source',
       'Status',
