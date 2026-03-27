@@ -8,7 +8,7 @@
  *   outreach/sends.json — emails sent and failed this week
  *   outreach/replies.json — replies classified this week
  *
- * Sends one HTML email to oliver@vtwo.co every Friday.
+ * Sends one HTML email to kiana.micari@vtwo.co every Friday.
  *
  * Env vars required:
  *   OUTLOOK_TENANT_ID, OUTLOOK_CLIENT_ID, OUTLOOK_CLIENT_SECRET — Microsoft Graph auth
@@ -22,7 +22,7 @@ const oauthConfig = require('../config/config.oauth');
 const PROSPECTS_FILE = path.join(__dirname, '..', 'prospects.json');
 const SENDS_FILE     = path.join(__dirname, '..', 'outreach', 'sends.json');
 const REPLIES_FILE   = path.join(__dirname, '..', 'outreach', 'replies.json');
-const RECIPIENT      = 'oliver@vtwo.co';
+const RECIPIENT      = 'kiana.micari@vtwo.co';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 

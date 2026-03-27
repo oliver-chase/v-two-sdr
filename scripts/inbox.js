@@ -26,7 +26,7 @@ const sheetsConfig = require('../config.sheets');
 const oauthConfig = require('../config/config.oauth');
 const { OOO_BUFFER_DAYS } = require('../config/sequences');
 
-const ALERT_RECIPIENT = 'oliver@vtwo.co';
+const ALERT_RECIPIENT = 'kiana.micari@vtwo.co';
 
 const PROSPECTS_FILE = path.join(__dirname, '..', 'prospects.json');
 
@@ -77,7 +77,7 @@ function calcNfu(bodyText) {
 // ─── Hot lead alert ───────────────────────────────────────────────────────────
 
 /**
- * Send an immediate alert email to oliver@vtwo.co when a prospect replies positively.
+ * Send an immediate alert email to kiana.micari@vtwo.co when a prospect replies positively.
  * Logs a warning on failure — never throws.
  */
 async function sendHotLeadAlert(prospect, replySnippet) {

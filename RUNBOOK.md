@@ -110,7 +110,7 @@ Run these in order, verifying each step before the next:
 
 1. **GitHub Actions → `daily-sync.yml` → Run workflow** — should complete green; check that `prospects.json` was committed
 2. Add a test prospect to the Leads sheet (Name, Title, Company, Email, Status = `email_discovered`)
-3. **Trigger `daily-draft.yml`** — an approval email should arrive at oliver@vtwo.co within ~2 minutes with clickable **Approve** and **Reject** buttons
+3. **Trigger `daily-draft.yml`** — an approval email should arrive at kiana.micari@vtwo.co within ~2 minutes with clickable **Approve** and **Reject** buttons
 4. **Click Approve** on the test draft — `send-approved.yml` should trigger; verify the email was sent from oliver@vtwo.co
 5. **Trigger `inbox-check.yml`** — should complete green
 6. Check the Leads sheet — Status column should reflect the send
@@ -133,6 +133,15 @@ The Worker URL stays the same after redeploy. Secrets set in the dashboard are n
 
 ---
 
+## Email Roles
+
+| Address | Role |
+|---|---|
+| `oliver@vtwo.co` | SDR sending address — all prospect outreach is sent from here; IMAP monitored for prospect replies |
+| `kiana.micari@vtwo.co` | Operator address — receives all system notifications: approval digest, hot lead alerts, weekly digest; BCC'd on all outbound prospect emails |
+
+---
+
 ## System Overview
 
 GitHub Actions runs a deterministic daily pipeline Mon–Fri. No AI agent orchestrates anything — Claude Haiku does exactly one job (write email drafts). Everything else is scheduled Node scripts.
@@ -140,12 +149,12 @@ GitHub Actions runs a deterministic daily pipeline Mon–Fri. No AI agent orches
 ```
 7:00 AM ET  daily-sync.yml    → sync.js           Pull Sheet, flag follow-ups
 7:30 AM ET  daily-draft.yml   → draft.js           Generate drafts (one Haiku call)
-                              → approval-email.js  Email digest to oliver@vtwo.co
+                              → approval-email.js  Email digest to kiana.micari@vtwo.co
 On click    approval-handler  → handle-approval.js Move to approved/ or reject
             (triggers)        → send.js            Send via Outlook
 9 AM/3 PM   inbox-check.yml   → inbox.js           Scan IMAP, classify, update state
 Sun 8 PM ET weekly-prospect   → prospect.js        Generate 25 new prospects via Sonnet
-Fri 5 PM ET weekly-digest     → digest.js          Weekly stats email to oliver@vtwo.co
+Fri 5 PM ET weekly-digest     → digest.js          Weekly stats email to kiana.micari@vtwo.co
 ```
 
 Git is the audit trail. Every step commits its output — `sync: prospects updated`, `drafts: generated`, `sent: approved emails dispatched`, `inbox: replies classified`.
@@ -220,7 +229,7 @@ All secrets live in **GitHub → saturdaythings/v-two-sdr → Settings → Secre
 | `send-approved.yml` | On approval + 10 AM ET cron | send.js | Send all files in outreach/approved/ via MS Graph, move to sent/, update prospects.json + Sheet |
 | `inbox-check.yml` | 9 AM + 3 PM ET Mon–Fri + manual | inbox.js | IMAP scan → classify replies → route to correct state → send hot lead alert if positive → update Sheet |
 | `weekly-prospect.yml` | Sun 8 PM ET + manual | prospect.js | Claude Sonnet generates 25 new ICP-matched prospects → dedup → append to Sheet |
-| `weekly-digest.yml` | Fri 5 PM ET + manual | digest.js | Aggregate 7-day stats (sends, replies, pipeline) → send summary email to oliver@vtwo.co |
+| `weekly-digest.yml` | Fri 5 PM ET + manual | digest.js | Aggregate 7-day stats (sends, replies, pipeline) → send summary email to kiana.micari@vtwo.co |
 
 **Manual trigger:** Go to Actions tab → select workflow → "Run workflow" → Run.
 
@@ -269,7 +278,7 @@ inbox.js scans IMAP twice daily (9 AM + 3 PM ET) and routes by classification:
 
 | Classification | Status Set | Notes |
 |---|---|---|
-| `positive` | `closed_positive` | Sequence stops; hot lead alert email sent to oliver@vtwo.co immediately |
+| `positive` | `closed_positive` | Sequence stops; hot lead alert email sent to kiana.micari@vtwo.co immediately |
 | `negative` | `closed_negative` | Sequence stops |
 | `opt_out` | `closed_negative` | Sequence stops |
 | `auto_reply` | `ooo_pending` | Parses return date → sets `nfu`; falls back to tomorrow |

@@ -4,7 +4,7 @@
  * scripts/approval-email.js — Daily approval digest
  *
  * Reads today's drafts from outreach/drafts/YYYY-MM-DD.json and sends ONE
- * HTML email to oliver@vtwo.co. Each draft includes clickable Approve / Reject
+ * HTML email to kiana.micari@vtwo.co. Each draft includes clickable Approve / Reject
  * links that hit the Cloudflare Worker (sdr-approval.workers.dev), which then
  * triggers approval-handler.yml via GitHub workflow_dispatch.
  *
@@ -22,7 +22,7 @@ const { OAuthClient } = require('./oauth-client');
 const oauthConfig = require('../config/config.oauth');
 
 const DRAFTS_DIR = path.join(__dirname, '..', 'outreach', 'drafts');
-const RECIPIENT = 'oliver@vtwo.co';
+const RECIPIENT = 'kiana.micari@vtwo.co';
 const DEFAULT_WORKER_URL = 'https://sdr-approval.workers.dev';
 
 // ─── URL builder ──────────────────────────────────────────────────────────────

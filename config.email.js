@@ -11,7 +11,8 @@ require('dotenv').config();
 module.exports = {
   sender: {
     name: process.env.SENDER_NAME || 'Oliver Chase',
-    email: 'oliver@vtwo.co'
+    email: 'oliver@vtwo.co',
+    bcc: process.env.BCC_EMAIL || 'kiana.micari@vtwo.co'
   },
 
   limits: {
