@@ -13,7 +13,7 @@ Claude Code does all code, tests, and git. No other agents involved.
 - Google Sheets (prospect source of truth), GitHub Actions (orchestration)
 - Outlook/Microsoft Graph (email send + IMAP)
 - Anthropic Claude Haiku (batched draft generation, falls back to static templates)
-- Repo: `saturdaythings/v-two-sdr`
+- Repo: `saturdaythings/sdr`
 
 ## Your Role
 ✅ Code, tests, git, architecture decisions
