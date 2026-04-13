@@ -9,7 +9,7 @@ Claude Code does all code, tests, and git. No other agents involved.
 - `RUNBOOK.md` — how to operate the system day-to-day
 
 ## Tech Stack
-- Node.js, Jest (287/287 tests passing)
+- Node.js, Jest (386/386 tests passing)
 - Google Sheets (prospect source of truth), GitHub Actions (orchestration)
 - Outlook/Microsoft Graph (email send + IMAP)
 - Anthropic Claude Haiku (batched draft generation, falls back to static templates)
@@ -36,7 +36,7 @@ Claude Code does all code, tests, and git. No other agents involved.
 
 ## Startup
 ```bash
-cd ~/OliverRepo/workspaces/work/projects/SDR
+cd ~/projects/v-two-sdr
 cat RUNBOOK.md
 ```
 

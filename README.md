@@ -1,300 +1,101 @@
-# Oliver Chase SDR System
+# V.Two SDR
 
-**Status:** Phase 2 Complete ✅ | **Infrastructure:** Shipped & Ready for Production
+Automated B2B cold outreach system. GitHub Actions orchestrates the full pipeline Mon-Fri. Oliver approves or rejects each draft via email before anything sends.
 
-Sales Development Representative system with Google Sheets integration, prospect enrichment, email drafting, and analytics.
+**Status:** Production-ready. 386/386 tests passing.
 
 ---
 
-## Quick Start (5 minutes)
+## How It Works
 
-### 1. Install Dependencies
+```
+Google Sheet (Leads)
+    ↓ daily-sync.yml (7:00 AM ET)
+prospects.json
+    ↓ daily-draft.yml (7:30 AM ET)
+outreach/drafts/YYYY-MM-DD.json
+    ↓ approval-email.yml → Oliver approves via email
+    ↓ send-approved.yml (on approval + 10 AM ET cron)
+Sent via Outlook (oliver@vtwo.co)
+    ↓ inbox-check.yml (9 AM + 3 PM ET)
+Replies classified, Sheet updated
+```
+
+## Quick Start (Local)
+
 ```bash
 npm install
+cp .env.example .env       # fill in credentials
+node -r dotenv/config scripts/sync.js
 ```
 
-### 2. Configure Environment Variables
-See: `CURRENT_STATE.md` for complete environment setup
+See `RUNBOOK.md` for full operational guide.
 
-```bash
-# GitHub Secrets are already configured for GitHub Actions
-# For local testing, create .env with values from .env.example
-# Required: 12 secrets (Outlook, Google, APIs, LLM providers)
-```
+## Key Scripts
 
-### 3. Run Sync
-```bash
-npm run sync
-```
+| Script | Purpose |
+|--------|---------|
+| `scripts/sync.js` | Pull Sheet, merge state, run scheduler, write prospects.json |
+| `scripts/draft.js` | Batch LLM call → outreach/drafts/YYYY-MM-DD.json |
+| `scripts/approval-email.js` | Send digest email with approve/reject curl commands |
+| `scripts/handle-approval.js` | Process approve/reject, trigger send |
+| `scripts/send.js` | Send all approved drafts via Outlook |
+| `scripts/inbox.js` | IMAP scan, classify replies, update Sheet state |
 
-### 4. Verify
-```bash
-npm test
-cat prospects.json
-```
+## GitHub Actions Workflows
 
----
+| Workflow | Schedule |
+|----------|----------|
+| `daily-sync.yml` | 7:00 AM ET Mon-Fri |
+| `daily-draft.yml` | 7:30 AM ET Mon-Fri |
+| `approval-handler.yml` | Triggered by curl from approval email |
+| `send-approved.yml` | On approval + 10 AM ET cron |
+| `inbox-check.yml` | 9:00 AM + 3:00 PM ET Mon-Fri |
+| `weekly-prospect.yml` | Weekly prospect refresh |
+| `weekly-digest.yml` | Weekly performance digest |
 
-## Architecture
+## Stack
 
-### Current Phase (2/3) — Phase 2 Complete
+- **Runtime:** Node.js
+- **Email send:** Microsoft Graph API + OAuth 2.0 (oliver@vtwo.co)
+- **Email receive:** Outlook IMAP (outlook.office365.com:993)
+- **Prospects:** Google Sheets — "V.Two SDR - Master Lead Repository" / "Leads" tab
+- **LLM:** Anthropic Claude Haiku (draft generation, falls back to static templates)
+- **Approval gate:** Cloudflare Worker (`cloudflare/approval-worker.js`)
+- **Orchestration:** GitHub Actions (no AI agents in the pipeline)
+- **Tests:** Jest, 386/386 passing
 
-**Phase 1 (Foundation):** ✅ Mar 11-17
-- Chunk 1: ✅ Cleanup & file reorganization
-- Chunk 2: ✅ Google Sheets integration
-- Chunk 3: ✅ Enrichment engine (email validation, web search)
-- Chunk 4: ✅ Lead state machine
+## Docs
 
-**Phase 2 (Execution + Intelligence):** ✅ Mar 16 (Complete)
-- Chunk 5: ✅ Email drafting + approval workflow
-- Chunk 6: ✅ Inbox monitoring + reply classification
-- Chunk 7: ✅ CLI & daily orchestration
+| File | Contents |
+|------|----------|
+| `REDESIGN.md` | Architecture decisions and why (source of truth) |
+| `RUNBOOK.md` | Day-to-day operations, first-time setup |
+| `docs/GOOGLE_CLOUD_SETUP.md` | Google Cloud + service account setup |
+| `docs/SHEETS_CONNECTOR.md` | Sheets API reference |
+| `docs/OAUTH_MIGRATION.md` | Azure OAuth setup for Microsoft Graph |
+| `docs/ABSTRACT_API_INTEGRATION.md` | Timezone API integration |
 
-**Phase 3 (Analytics):** 📋 In Progress
-- Chunk 8: 📋 Event logging, metrics, dashboard
+## Prospect Format (TOON)
 
-### Data Flow
+Abbreviated field names reduce token cost in LLM calls.
 
-```
-Google Sheet (Source)
-    ↓ [Sync]
-prospects.json (TOON Format)
-    ↓ [Enrich]
-prospects.json + enrichment metadata
-    ↓ [Draft]
-Email drafts (awaiting approval)
-    ↓ [Send]
-Sent emails (tracked)
-    ↓ [Monitor]
-Replies (classified)
-    ↓ [Metrics]
-Dashboard analytics
-```
-
----
-
-## Available Commands
-
-```bash
-# Sync prospects from Google Sheet
-npm run sync
-npm run sync -- --validate
-npm run sync -- --verbose
-
-# Run tests
-npm test
-npm test -- --watch
-npm test -- --coverage
-
-# Validate prospects.json
-npm run validate
-npm run validate prospects.json
-
-# Watch mode (development)
-npm test -- --watch
-```
-
----
-
-## Documentation
-
-- **[SHEETS_CONNECTOR.md](docs/SHEETS_CONNECTOR.md)** — API reference, usage guide
-- **[GOOGLE_CLOUD_SETUP.md](docs/GOOGLE_CLOUD_SETUP.md)** — Step-by-step setup
-- **[PHASE1_CHUNK2_COMPLETE.md](docs/PHASE1_CHUNK2_COMPLETE.md)** — Project summary
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** — System design overview
-
----
-
-## Project Structure
-
-```
-workspaces/work/projects/SDR/
-├── sheets-connector.js              # Core Google Sheets connector
-├── config.sheets.js                 # Configuration
-├── jest.config.js                   # Test setup
-├── package.json                     # Dependencies
-├── .gitignore                       # Credential protection
-├── scripts/
-│   ├── validate-prospects.js        # Data validation
-│   └── sync-from-sheets.js          # Sync CLI command
-├── tests/
-│   └── sheets-connector.test.js     # Comprehensive tests (48+)
-├── docs/
-│   ├── SHEETS_CONNECTOR.md
-│   ├── GOOGLE_CLOUD_SETUP.md
-│   └── PHASE1_CHUNK2_COMPLETE.md
-├── prospects.json                   # Generated (TOON format)
-├── secrets/                         # Credentials (gitignored)
-└── logs/                            # Sync logs (gitignored)
-```
-
----
-
-## Key Features (Chunk 2)
-
-✅ **Google Sheets Integration**
-- Service account authentication
-- Dynamic schema inference
-- Field mapping confirmation
-- Read/write operations
-- Batch optimization
-- Rate limiting
-
-✅ **TOON Format** (Token Optimization)
-- Abbreviated field names
-- 60% token reduction per prospect
-- Metadata tracking
-
-✅ **Testing**
-- 48+ tests
-- 80%+ coverage
-- Mocked APIs
-- Unit + integration tests
-
-✅ **Documentation**
-- API reference
-- Setup guide
-- Troubleshooting
-
----
-
-## Configuration
-
-Edit `config.sheets.js`:
-
-```javascript
-const config = {
-  google_sheets: {
-    sheet_id: 'YOUR_SHEET_ID',           // From spreadsheet URL
-    sheet_name: 'Prospects',              // Tab name
-    templates_sheet: 'Templates',         // Optional
-    optouts_sheet: 'OptOuts'             // Optional
-  },
-  credentials_path: './secrets/google-code-credentials.json'
-};
-```
-
----
-
-## Environment Variables
-
-```bash
-# Override sheet ID
-export GOOGLE_SHEETS_ID=your-sheet-id
-
-# Override credentials path
-export GOOGLE_CREDENTIALS_PATH=/path/to/credentials.json
-
-# Set log level (debug, info, warn, error)
-export LOG_LEVEL=debug
-```
-
----
-
-## Troubleshooting
-
-### Common Issues
-
-**"Credentials file not found"**
-- Download from Google Cloud Console
-- Save to `secrets/google-code-credentials.json`
-
-**"Sheet 'Prospects' not found"**
-- Check sheet tab name (case-sensitive)
-- Update `config.sheets.js`
-
-**"The caller does not have permission"**
-- Verify service account is shared on sheet
-- Check permissions (Viewer for Claude Code, Editor for OpenClaw)
-
-See full troubleshooting: `docs/GOOGLE_CLOUD_SETUP.md`
-
----
-
-## Testing
-
-```bash
-# Run all tests with coverage
-npm test
-
-# Watch mode (re-run on file changes)
-npm test -- --watch
-
-# Run specific test file
-npm run test:sheets
-
-# Run with verbose output
-npm test -- --verbose
-```
-
-**Coverage Target:** 80%+ (achieved)
-
----
-
-## Data Format (TOON)
-
-### Prospect Schema
 ```json
 {
   "id": "p-000001",
-  "fn": "First",
-  "ln": "Last",
-  "em": "email@domain.com",
-  "co": "Company",
-  "ti": "Title",
-  "li": "linkedin.com/in/...",
-  "lo": "City, State",
-  "tz": "America/New_York",
+  "fn": "First",     "ln": "Last",
+  "em": "email@co",  "co": "Company",  "ti": "Title",
+  "lo": "City, ST",  "tz": "America/New_York",
   "tr": "ai-enablement",
-  "st": "new",
-  "ad": "2026-03-11"
+  "st": "new",       "ad": "2026-03-11"
 }
 ```
 
-### Valid Values
+**Tracks:** `ai-enablement` | `product-maker` | `pace-car`
 
-**Track:** ai-enablement | product-maker | pace-car
+**Status flow:** `new` → `draft_generated` → `awaiting_approval` → `email_sent` → `replied` → `closed_positive/negative`
 
-**Status:** new | email_discovered | draft_generated | awaiting_approval | email_sent | replied | closed_positive | closed_negative | opted_out | bounced
+## Secrets
 
----
-
-## Next Phase
-
-**Phase 2 (Chunk 3):** Enrichment Engine
-- Email validation + confidence scoring
-- Web search integration
-- Company context extraction
-
-See: `ROADMAP.md`
-
----
-
-## Support
-
-- **Questions:** Check documentation in `docs/`
-- **Issues:** Run tests, check troubleshooting section
-- **Debugging:** Enable verbose logging: `LOG_LEVEL=debug npm run sync`
-
----
-
-## Security
-
-- ✅ Credentials in `.gitignore` (never committed)
-- ✅ Service account (not user OAuth)
-- ✅ Environment variable support
-- ✅ No secrets in logs
-- ✅ Minimal permissions (Viewer for read-only)
-
----
-
-**Version:** 1.0 | **Phase:** 1 Chunk 2 | **Status:** Complete ✅
-
-For detailed API reference, see: `docs/SHEETS_CONNECTOR.md`
-
-- Primary model: mistral:7b (local, free)
-- Fallbacks: none []
-- Main agent is set to Mistral
-- OpenRouter and Anthropic API keys have been removed
-- OpenClaw is now fully local and free
-
+All credentials are in GitHub Secrets (12 total). For local dev, copy `.env.example` to `.env`.
+`secrets/google-credentials.json` is a setup template — fill in real values, never commit.
