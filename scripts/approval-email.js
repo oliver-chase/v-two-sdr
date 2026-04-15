@@ -92,7 +92,7 @@ function buildEmailBody(drafts, token, workerUrl) {
     '<p style="font-size:13px;color:#666;margin:0 0 8px">Click Approve or Reject for each.</p>' +
     sections +
     '<p style="font-size:12px;color:#aaa;margin-top:16px">' +
-      'SDR System &mdash; saturdaythings/v-two-sdr' +
+      'SDR System &mdash; oliver-chase/v-two-sdr' +
     '</p>' +
     '</body></html>';
 }

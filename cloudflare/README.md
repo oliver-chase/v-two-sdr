@@ -32,13 +32,13 @@ Set these in the Cloudflare dashboard:
 |---|---|---|
 | `SDR_TOKEN` | (generate a random string) | Must match GitHub Secret `SDR_TOKEN` exactly |
 | `GITHUB_PAT` | `ghp_...` | GitHub Personal Access Token, `actions:write` scope only |
-| `GITHUB_REPO` | `saturdaythings/v-two-sdr` | The target repository |
+| `GITHUB_REPO` | `oliver-chase/v-two-sdr` | The target repository |
 
 **Important:** Mark `SDR_TOKEN` and `GITHUB_PAT` as **Encrypted** (toggle in the dashboard).
 
 ## GitHub Secrets
 
-Also add to GitHub → saturdaythings/v-two-sdr → Settings → Secrets → Actions:
+Also add to GitHub → oliver-chase/v-two-sdr → Settings → Secrets → Actions:
 
 | Secret | Value |
 |---|---|

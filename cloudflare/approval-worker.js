@@ -13,7 +13,7 @@
  * Env vars (set in Cloudflare dashboard):
  *   SDR_TOKEN   — shared secret; must match value in GitHub Secrets
  *   GITHUB_PAT  — GitHub PAT with actions:write scope only
- *   GITHUB_REPO — e.g. saturdaythings/sdr (defaults to this value)
+ *   GITHUB_REPO — e.g. oliver-chase/v-two-sdr (defaults to this value)
  *
  * Deploy: npx wrangler deploy (from the cloudflare/ directory)
  */
@@ -39,7 +39,7 @@ export default {
     }
 
     // Trigger GitHub workflow_dispatch
-    const repo   = env.GITHUB_REPO || 'saturdaythings/sdr';
+    const repo   = env.GITHUB_REPO || 'oliver-chase/v-two-sdr';
     const apiUrl = 'https://api.github.com/repos/' + repo +
                    '/actions/workflows/approval-handler.yml/dispatches';
 

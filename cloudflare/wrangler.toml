@@ -8,4 +8,4 @@ compatibility_date = "2024-01-01"
 # Required vars (Cloudflare dashboard → Workers → sdr-approval → Settings → Variables):
 #   SDR_TOKEN   — shared secret (same value as GitHub Secret SDR_TOKEN)
 #   GITHUB_PAT  — GitHub PAT with actions:write scope
-#   GITHUB_REPO — saturdaythings/v-two-sdr
+#   GITHUB_REPO — oliver-chase/v-two-sdr

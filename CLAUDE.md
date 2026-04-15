@@ -1,5 +1,12 @@
 # Claude Code Guide — SDR Project
 
+## Session Rules
+- Extended thinking / adaptive reasoning: OFF.
+- Load files on demand per task only. Skip AUDIT.md, CONTRIBUTING.md, tokens.css at startup.
+- git log default: --oneline -10.
+- Every 5 prompts: full audit. Otherwise scope reads to task files only.
+- After each prompt: commit, push, deploy.
+
 ## What is SDR?
 Automated B2B cold outreach via email. GitHub Actions runs the daily pipeline.
 Claude Code does all code, tests, and git. No other agents involved.
@@ -13,7 +20,7 @@ Claude Code does all code, tests, and git. No other agents involved.
 - Google Sheets (prospect source of truth), GitHub Actions (orchestration)
 - Outlook/Microsoft Graph (email send + IMAP)
 - Anthropic Claude Haiku (batched draft generation, falls back to static templates)
-- Repo: `saturdaythings/sdr`
+- Repo: `oliver-chase/v-two-sdr`
 
 ## Your Role
 ✅ Code, tests, git, architecture decisions

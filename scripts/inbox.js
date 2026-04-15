@@ -232,7 +232,7 @@ async function sendHotLeadAlert(prospect, replySnippet) {
     '<p style="font-size:13px;color:#555;margin:12px 0 4px"><strong>Reply snippet:</strong></p>' +
     '<pre style="' + snippetStyle + '">' + snipEscaped + '</pre>' +
     suggestionHtml +
-    '<p style="font-size:12px;color:#aaa;margin-top:20px">SDR System — saturdaythings/v-two-sdr</p>' +
+    '<p style="font-size:12px;color:#aaa;margin-top:20px">SDR System — oliver-chase/v-two-sdr</p>' +
     '</body></html>';
 
   try {

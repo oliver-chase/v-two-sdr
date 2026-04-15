@@ -1,6 +1,6 @@
 # SDR System Runbook
 
-**Repo:** saturdaythings/v-two-sdr
+**Repo:** oliver-chase/v-two-sdr
 **Updated:** 2026-03-27
 
 ---
@@ -12,7 +12,7 @@ Everything needed to go from zero to running.
 ### Prerequisites
 
 - Cloudflare account (free tier at cloudflare.com)
-- GitHub account with access to saturdaythings/v-two-sdr
+- GitHub account with access to oliver-chase/v-two-sdr
 - Google Cloud project with Sheets API enabled
 - Azure app registration for oliver@vtwo.co (Microsoft Graph / Outlook OAuth)
 - Hunter.io account (free tier)
@@ -43,7 +43,7 @@ The Worker receives Approve/Reject clicks from the daily email and triggers GitH
 
 ```bash
 # Copy the cloudflare/ folder to your Mac if needed
-scp -r oliver@192.168.64.2:~/OliverRepo/workspaces/work/projects/SDR/cloudflare ~/Downloads/cloudflare-worker
+scp -r oliver@192.168.64.2:~/projects/v-two-sdr/cloudflare ~/Downloads/cloudflare-worker
 
 cd ~/Downloads/cloudflare-worker
 npx wrangler login
@@ -61,7 +61,7 @@ Add these as **Secret** type (not plain text):
 |---|---|
 | `SDR_TOKEN` | Any random string — you choose (e.g. `openssl rand -hex 32`) |
 | `GITHUB_PAT` | GitHub PAT — see below |
-| `GITHUB_REPO` | `saturdaythings/v-two-sdr` |
+| `GITHUB_REPO` | `oliver-chase/v-two-sdr` |
 
 **To create the GitHub PAT:**
 1. Go to github.com/settings/personal-access-tokens/new
@@ -74,7 +74,7 @@ Add these as **Secret** type (not plain text):
 
 ### Step 3 — GitHub Secrets
 
-Go to **github.com/saturdaythings/v-two-sdr → Settings → Secrets and variables → Actions → New repository secret** and add all 13:
+Go to **github.com/oliver-chase/v-two-sdr → Settings → Secrets and variables → Actions → New repository secret** and add all 13:
 
 | Secret | What It Is | Where to Get It |
 |---|---|---|
@@ -124,7 +124,7 @@ If the approval email doesn't arrive after step 3, check Actions → `daily-draf
 If the Worker code changes and needs redeploying:
 
 ```bash
-scp -r oliver@192.168.64.2:~/OliverRepo/workspaces/work/projects/SDR/cloudflare ~/Downloads/cloudflare-worker
+scp -r oliver@192.168.64.2:~/projects/v-two-sdr/cloudflare ~/Downloads/cloudflare-worker
 cd ~/Downloads/cloudflare-worker
 npx wrangler deploy
 ```
@@ -197,7 +197,7 @@ The sync runs at 7:00 AM ET. Prospects added before that appear in the same day'
 
 ## Secrets Reference
 
-All secrets live in **GitHub → saturdaythings/v-two-sdr → Settings → Secrets and variables → Actions** and in your local `.env` for manual runs.
+All secrets live in **GitHub → oliver-chase/v-two-sdr → Settings → Secrets and variables → Actions** and in your local `.env` for manual runs.
 
 | Secret | Used By | What It Is |
 |---|---|---|
@@ -344,7 +344,7 @@ npm test
 ## Local Manual Run (any step)
 
 ```bash
-cd ~/OliverRepo/workspaces/work/projects/SDR
+cd ~/projects/v-two-sdr
 
 # Full sync
 node -r dotenv/config scripts/sync.js

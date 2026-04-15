@@ -205,7 +205,7 @@ jobs:
           OUTLOOK_TENANT_ID: ${{ secrets.OUTLOOK_TENANT_ID }}
           OUTLOOK_CLIENT_ID: ${{ secrets.OUTLOOK_CLIENT_ID }}
           OUTLOOK_CLIENT_SECRET: ${{ secrets.OUTLOOK_CLIENT_SECRET }}
-          APPROVAL_BASE_URL: "https://api.github.com/repos/saturdaythings/v-two-sdr/actions/workflows/approval-handler.yml/dispatches"
+          APPROVAL_BASE_URL: "https://api.github.com/repos/oliver-chase/v-two-sdr/actions/workflows/approval-handler.yml/dispatches"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:

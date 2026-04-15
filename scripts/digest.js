@@ -211,7 +211,7 @@ function buildEmailBody(stats) {
 
     divider +
 
-    '<p style="font-size:12px;color:#aaa;margin-top:8px">SDR System &mdash; saturdaythings/v-two-sdr</p>' +
+    '<p style="font-size:12px;color:#aaa;margin-top:8px">SDR System &mdash; oliver-chase/v-two-sdr</p>' +
     '</body></html>';
 }
 
