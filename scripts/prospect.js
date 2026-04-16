@@ -24,76 +24,12 @@ const path = require('path');
 const axios = require('axios');
 const { GoogleSheetsConnector } = require('../sheets-connector');
 const { supabaseUpsert } = require('./supabase-client');
+const { loadLocalProspects, extractDedupKeys, buildDedupIndex, matchesIndex } = require('./prospect-dedup');
 const sheetsConfig = require('../config/config.sheets');
 
-const PROSPECTS_FILE = path.join(__dirname, '..', 'prospects.json');
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_MODEL = 'claude-sonnet-4-6';
 const TARGET_COUNT = 25;
-
-// ─── Deduplication ────────────────────────────────────────────────────────────
-
-function loadLocalProspects() {
-  try {
-    if (fs.existsSync(PROSPECTS_FILE)) {
-      var data = JSON.parse(fs.readFileSync(PROSPECTS_FILE, 'utf8'));
-      return Array.isArray(data.prospects) ? data.prospects : [];
-    }
-  } catch (e) {
-    console.warn('[prospect] Could not load prospects.json: ' + e.message);
-  }
-  return [];
-}
-
-/**
- * Extract the three dedup keys from a prospect object.
- * Handles both nm (full name) and fn+ln (split name) formats.
- */
-function extractDedupKeys(p) {
-  var email = (p.em || '').toLowerCase().trim();
-
-  var fullName = p.nm
-    ? p.nm.trim()
-    : ((p.fn || '') + ' ' + (p.ln || '')).trim();
-  var nameCompany = fullName.toLowerCase() + '|' + (p.co || '').toLowerCase().trim();
-
-  var firstName = p.fn
-    ? p.fn.toLowerCase().trim()
-    : fullName.toLowerCase().split(/\s+/)[0] || '';
-  var domainFirst = (p.dm || '').toLowerCase().trim() + '|' + firstName;
-
-  return { email, nameCompany, domainFirst };
-}
-
-/**
- * Build a three-key dedup index from an array of prospects.
- * Returns { emails, nameCompanies, domainFirstNames } — all Sets.
- */
-function buildDedupIndex(prospects) {
-  var emails = new Set();
-  var nameCompanies = new Set();
-  var domainFirstNames = new Set();
-
-  prospects.forEach(function(p) {
-    var k = extractDedupKeys(p);
-    if (k.email) emails.add(k.email);
-    if (k.nameCompany && k.nameCompany !== '|') nameCompanies.add(k.nameCompany);
-    if (k.domainFirst && k.domainFirst !== '|') domainFirstNames.add(k.domainFirst);
-  });
-
-  return { emails, nameCompanies, domainFirstNames };
-}
-
-/**
- * Return true if candidate matches any key in the given index.
- */
-function matchesIndex(candidate, index) {
-  var k = extractDedupKeys(candidate);
-  if (k.email && index.emails.has(k.email)) return true;
-  if (k.nameCompany && k.nameCompany !== '|' && index.nameCompanies.has(k.nameCompany)) return true;
-  if (k.domainFirst && k.domainFirst !== '|' && index.domainFirstNames.has(k.domainFirst)) return true;
-  return false;
-}
 
 // ─── Build prompt ─────────────────────────────────────────────────────────────
 
@@ -418,4 +354,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { main, buildPrompt, validateProspect, normalizeProspect, buildDedupIndex, extractDedupKeys, matchesIndex };
+module.exports = { main, buildPrompt, validateProspect, normalizeProspect, buildDedupIndex, extractDedupKeys, matchesIndex, loadLocalProspects };
