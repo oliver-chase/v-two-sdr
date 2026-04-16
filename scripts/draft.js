@@ -18,6 +18,7 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 const { GoogleSheetsConnector } = require('../sheets-connector');
+const { supabaseUpsert } = require('./supabase-client');
 const sheetsConfig = require('../config.sheets');
 
 const PROSPECTS_FILE = path.join(__dirname, '..', 'prospects.json');
@@ -350,66 +351,19 @@ async function main() {
   fs.writeFileSync(draftTmpFile, draftProspectsPayload);
   fs.renameSync(draftTmpFile, PROSPECTS_FILE);
 
-  // Write drafts to Supabase sdr_approval_items (best-effort)
-  await writeDraftsToSupabase(drafts, today);
+  // Write drafts to Supabase sdr_approval_items (best-effort, with retry)
+  await supabaseUpsert('sdr_approval_items', drafts.map(d => ({
+    id: d.draft_id,
+    batch_date: today,
+    prospect_id: d.prospect_id,
+    em: d.em, fn: d.fn, nm: d.nm, ti: d.ti, co: d.co, tr: d.tr,
+    touch: d.touch, subject: d.subject, body: d.body,
+    gen: d.gen, status: 'pending_approval', ts: d.ts,
+  })), '[draft]');
 
   console.log(`[draft] Done. ${drafts.length} draft(s) (${usedLLM ? 'llm' : 'static'})`);
 }
 
-// ─── Supabase dual-write ──────────────────────────────────────────────────────
-
-async function writeDraftsToSupabase(drafts, batchDate) {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_ANON_KEY;
-  if (!url || !key) return;
-  try {
-    const https = require('https');
-    const payload = JSON.stringify(drafts.map(d => ({
-      id: d.draft_id,
-      batch_date: batchDate,
-      prospect_id: d.prospect_id,
-      em: d.em,
-      fn: d.fn,
-      nm: d.nm,
-      ti: d.ti,
-      co: d.co,
-      tr: d.tr,
-      touch: d.touch,
-      subject: d.subject,
-      body: d.body,
-      gen: d.gen,
-      status: 'pending_approval',
-      ts: d.ts,
-    })));
-    await new Promise((resolve, reject) => {
-      const urlObj = new URL(url + '/rest/v1/sdr_approval_items');
-      const req = https.request({
-        hostname: urlObj.hostname,
-        path: urlObj.pathname,
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + key,
-          'apikey': key,
-          'Content-Type': 'application/json',
-          'Prefer': 'resolution=merge-duplicates,return=minimal',
-          'Content-Length': Buffer.byteLength(payload),
-        },
-      }, res => {
-        res.resume();
-        res.on('end', () => {
-          if (res.statusCode >= 200 && res.statusCode < 300) resolve();
-          else reject(new Error('Supabase upsert returned ' + res.statusCode));
-        });
-      });
-      req.on('error', reject);
-      req.write(payload);
-      req.end();
-    });
-    console.log(`[draft] Wrote ${drafts.length} draft(s) to Supabase`);
-  } catch (e) {
-    console.warn(`[draft] Supabase write failed: ${e.message}`);
-  }
-}
 
 if (require.main === module) {
   main().catch(err => {

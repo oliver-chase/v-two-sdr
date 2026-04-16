@@ -23,6 +23,7 @@ const { checkInbox, buildConfig } = require('./inbox-monitor');
 const { handleBounce } = require('./bounce-handler');
 const { GoogleSheetsConnector } = require('../sheets-connector');
 const { OAuthClient } = require('./oauth-client');
+const { supabaseUpsert } = require('./supabase-client');
 const sheetsConfig = require('../config.sheets');
 const oauthConfig = require('../config/config.oauth');
 const { OOO_BUFFER_DAYS } = require('../config/sequences');
@@ -391,6 +392,17 @@ async function main() {
     fs.renameSync(inboxTmpFile, PROSPECTS_FILE);
 
     await updateSheet(sheetUpdates);
+
+    // Mirror status changes to Supabase sdr_prospects (best-effort, with retry)
+    await supabaseUpsert('sdr_prospects', sheetUpdates.map(u => {
+      const p = prospects.find(x => x.em === u.em) || {};
+      return {
+        id: p.id || u.em,
+        em: u.em,
+        st: u.st,
+        lu: new Date().toISOString(),
+      };
+    }), '[inbox]');
   }
 
   console.log(`[inbox] Done — ${changed} status change(s)`);

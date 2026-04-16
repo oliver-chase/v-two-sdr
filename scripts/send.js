@@ -16,6 +16,7 @@ const fs = require('fs');
 const path = require('path');
 const { Mailer } = require('./mailer');
 const { GoogleSheetsConnector } = require('../sheets-connector');
+const { supabaseUpsert } = require('./supabase-client');
 const mailerEmailConfig = require('../config.email');
 const oauthConfig = require('../config/config.oauth');
 const sheetsConfig = require('../config.sheets');
@@ -23,58 +24,6 @@ const sheetsConfig = require('../config.sheets');
 const APPROVED_DIR = path.join(__dirname, '..', 'outreach', 'approved');
 const SENT_DIR = path.join(__dirname, '..', 'outreach', 'sent');
 const PROSPECTS_FILE = path.join(__dirname, '..', 'prospects.json');
-
-// ─── Supabase write-back ──────────────────────────────────────────────────────
-
-async function writeSendsToSupabase(sentDrafts) {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_ANON_KEY;
-  if (!url || !key) return;
-  try {
-    const https = require('https');
-    const payload = JSON.stringify(sentDrafts.map(d => ({
-      id: d.draft_id,
-      prospect_id: d.prospect_id,
-      draft_id: d.draft_id,
-      em: d.em,
-      fn: d.fn,
-      nm: d.nm || d.fn,
-      ti: d.ti,
-      co: d.co,
-      subject: d.subject,
-      sent_at: new Date().toISOString(),
-      status: 'sent',
-      fuc: d.fuc || 1,
-    })));
-    await new Promise((resolve, reject) => {
-      const urlObj = new URL(url + '/rest/v1/sdr_sends');
-      const req = https.request({
-        hostname: urlObj.hostname,
-        path: urlObj.pathname,
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + key,
-          'apikey': key,
-          'Content-Type': 'application/json',
-          'Prefer': 'resolution=merge-duplicates,return=minimal',
-          'Content-Length': Buffer.byteLength(payload),
-        },
-      }, res => {
-        res.resume();
-        res.on('end', () => {
-          if (res.statusCode >= 200 && res.statusCode < 300) resolve();
-          else reject(new Error('Supabase sdr_sends returned ' + res.statusCode));
-        });
-      });
-      req.on('error', reject);
-      req.write(payload);
-      req.end();
-    });
-    console.log(`[send] Wrote ${sentDrafts.length} send(s) to Supabase`);
-  } catch (e) {
-    console.warn(`[send] Supabase write failed: ${e.message}`);
-  }
-}
 
 // ─── Sheet write-back ─────────────────────────────────────────────────────────
 
@@ -180,8 +129,8 @@ async function main() {
     }
   }
 
-  // Write prospects.json
-  if (sentProspects.length > 0) {
+  // Always write prospects.json if anything was attempted — prevents re-send on daily limit
+  if (sentProspects.length > 0 || failCount > 0) {
     const byState = prospects.reduce((acc, p) => {
       const k = p.st || 'unknown';
       acc[k] = (acc[k] || 0) + 1;
@@ -194,8 +143,19 @@ async function main() {
     const sendTmpFile = PROSPECTS_FILE + '.tmp';
     fs.writeFileSync(sendTmpFile, sendPayload);
     fs.renameSync(sendTmpFile, PROSPECTS_FILE);
+  }
 
-    await writeSendsToSupabase(sentDrafts);
+  if (sentDrafts.length > 0) {
+    await supabaseUpsert('sdr_sends', sentDrafts.map(d => ({
+      id: d.draft_id,
+      prospect_id: d.prospect_id,
+      draft_id: d.draft_id,
+      em: d.em, fn: d.fn, nm: d.nm || d.fn, ti: d.ti, co: d.co,
+      subject: d.subject,
+      sent_at: new Date().toISOString(),
+      status: 'sent',
+      fuc: d.fuc || 1,
+    })), '[send]');
     await updateSheet(sentProspects);
   }
 

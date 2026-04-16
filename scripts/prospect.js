@@ -23,6 +23,7 @@ const fs   = require('fs');
 const path = require('path');
 const axios = require('axios');
 const { GoogleSheetsConnector } = require('../sheets-connector');
+const { supabaseUpsert } = require('./supabase-client');
 const sheetsConfig = require('../config/config.sheets');
 
 const PROSPECTS_FILE = path.join(__dirname, '..', 'prospects.json');
@@ -399,6 +400,15 @@ async function main() {
   } catch (e) {
     console.warn('[prospect] Sheet append failed: ' + e.message + ' — skipping');
   }
+
+  // 8. Mirror new prospects to Supabase sdr_prospects (best-effort, with retry)
+  await supabaseUpsert('sdr_prospects', valid.map(function(p) {
+    return {
+      id: p.id, nm: p.nm, fn: p.fn, ti: p.ti, co: p.co, em: p.em,
+      st: p.st || 'new', tr: p.tr, ind: p.ind,
+      lu: new Date().toISOString(),
+    };
+  }), '[prospect]');
 }
 
 if (require.main === module) {
