@@ -25,6 +25,8 @@ jobs:
           GOOGLE_PRIVATE_KEY: ${{ secrets.GOOGLE_PRIVATE_KEY }}
           HUNTER_IO_API_KEY: ${{ secrets.HUNTER_IO_API_KEY }}
           ABSTRACT_API_KEY: ${{ secrets.ABSTRACT_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: node scripts/sync.js
 
       - name: Commit and push changes
