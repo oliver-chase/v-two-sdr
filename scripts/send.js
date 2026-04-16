@@ -75,6 +75,9 @@ async function main() {
     return;
   }
 
+  // Ensure sent/ exists before any renames (stale draft handling below)
+  if (!fs.existsSync(SENT_DIR)) fs.mkdirSync(SENT_DIR, { recursive: true });
+
   // Parse drafts, filter stale and already-sent
   const now = Date.now();
   const files = allFiles.filter(file => {
@@ -110,8 +113,6 @@ async function main() {
   // Load prospects for state updates
   const raw = JSON.parse(fs.readFileSync(PROSPECTS_FILE, 'utf8'));
   const prospects = raw.prospects || [];
-
-  if (!fs.existsSync(SENT_DIR)) fs.mkdirSync(SENT_DIR, { recursive: true });
 
   const sentProspects = [];
   const sentDrafts = [];

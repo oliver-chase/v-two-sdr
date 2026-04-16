@@ -19,7 +19,6 @@ const timezoneCache = require('../lib/timezone-cache');
 const hunterVerifier = require('./hunter-verifier');
 const { EMAIL_PATTERNS, generateEmailCandidates, validateEmailFormat } = require('./enrichment-candidates');
 const { searchSerper, enrichProspectWebSearch, enrichProspectWebFetch } = require('./enrichment-web');
-const { validateEmail: _validateEmailLegacy } = require('./validate-prospects');
 
 // ─── MX validation ────────────────────────────────────────────────────────────
 
