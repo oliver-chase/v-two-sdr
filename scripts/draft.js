@@ -26,6 +26,7 @@ const DRAFTS_DIR = path.join(__dirname, '..', 'outreach', 'drafts');
 const TEMPLATES_FILE = path.join(__dirname, '..', 'outreach', 'templates.md');
 
 const ELIGIBLE_STATUSES = new Set(['email_discovered', 'followup_due']);
+const MAX_BATCH_SIZE = 20; // cap LLM prompt size; eligible beyond this deferred to next run
 
 // ─── Templates ───────────────────────────────────────────────────────────────
 
@@ -235,16 +236,22 @@ async function main() {
   // Load prospects
   const raw = JSON.parse(fs.readFileSync(PROSPECTS_FILE, 'utf8'));
   const prospects = raw.prospects || [];
-  const eligible = prospects.filter(p => p.em && ELIGIBLE_STATUSES.has(p.st));
+  const allEligible = prospects.filter(p => p.em && ELIGIBLE_STATUSES.has(p.st));
 
-  if (eligible.length === 0) {
+  if (allEligible.length === 0) {
     console.log('[draft] No eligible prospects. Done.');
     return;
   }
 
+  // Cap batch size to avoid oversized LLM prompts; defer remainder to next run
+  const eligible = allEligible.slice(0, MAX_BATCH_SIZE);
+  if (allEligible.length > MAX_BATCH_SIZE) {
+    console.log(`[draft] ${allEligible.length} eligible — capping at ${MAX_BATCH_SIZE} for this run`);
+  }
+
   const initialCount = eligible.filter(p => p.st === 'email_discovered').length;
   const followupCount = eligible.filter(p => p.st === 'followup_due').length;
-  console.log(`[draft] ${eligible.length} eligible: ${initialCount} initial, ${followupCount} follow-up`);
+  console.log(`[draft] ${eligible.length} in batch: ${initialCount} initial, ${followupCount} follow-up`);
 
   const templates = loadTemplates();
 

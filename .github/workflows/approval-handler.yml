@@ -10,6 +10,10 @@ on:
         description: 'approve or reject'
         required: true
 
+concurrency:
+  group: sdr-prospects-write
+  cancel-in-progress: false
+
 jobs:
   handle:
     runs-on: ubuntu-latest

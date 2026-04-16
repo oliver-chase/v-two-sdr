@@ -5,6 +5,10 @@ on:
     - cron: '30 12 * * 1-5'  # 7:30 AM ET
   workflow_dispatch:
 
+concurrency:
+  group: sdr-prospects-write
+  cancel-in-progress: false
+
 jobs:
   draft:
     runs-on: ubuntu-latest

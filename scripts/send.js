@@ -16,7 +16,7 @@ const fs = require('fs');
 const path = require('path');
 const { Mailer } = require('./mailer');
 const { GoogleSheetsConnector } = require('../sheets-connector');
-const { supabaseUpsert } = require('./supabase-client');
+const { supabaseUpsert, supabaseQuery } = require('./supabase-client');
 const mailerEmailConfig = require('../config.email');
 const oauthConfig = require('../config/config.oauth');
 const sheetsConfig = require('../config.sheets');
@@ -24,6 +24,9 @@ const sheetsConfig = require('../config.sheets');
 const APPROVED_DIR = path.join(__dirname, '..', 'outreach', 'approved');
 const SENT_DIR = path.join(__dirname, '..', 'outreach', 'sent');
 const PROSPECTS_FILE = path.join(__dirname, '..', 'prospects.json');
+
+const DAILY_SEND_LIMIT = 20;
+const STALE_DRAFT_DAYS = 14;
 
 // ─── Sheet write-back ─────────────────────────────────────────────────────────
 
@@ -50,13 +53,57 @@ async function main() {
     return;
   }
 
-  const files = fs.readdirSync(APPROVED_DIR).filter(f => f.endsWith('.json'));
-  if (files.length === 0) {
+  const allFiles = fs.readdirSync(APPROVED_DIR).filter(f => f.endsWith('.json'));
+  if (allFiles.length === 0) {
     console.log('[send] No approved drafts — nothing to send');
     return;
   }
 
-  console.log(`[send] ${files.length} approved draft(s) to process`);
+  // Dedup + daily limit from Supabase
+  const today = new Date().toISOString().split('T')[0];
+  const todaySends = await supabaseQuery(
+    'sdr_sends',
+    'sent_at=gte.' + today + 'T00:00:00Z&select=prospect_id,id',
+    '[send]'
+  );
+  const alreadySentProspects = new Set(todaySends.map(r => r.prospect_id));
+  const alreadySentDraftIds = new Set(todaySends.map(r => r.id));
+  const todaySentCount = todaySends.length;
+
+  if (todaySentCount >= DAILY_SEND_LIMIT) {
+    console.log(`[send] Daily limit reached (${todaySentCount}/${DAILY_SEND_LIMIT}) — skipping all sends`);
+    return;
+  }
+
+  // Parse drafts, filter stale and already-sent
+  const now = Date.now();
+  const files = allFiles.filter(file => {
+    let draft;
+    try { draft = JSON.parse(fs.readFileSync(path.join(APPROVED_DIR, file), 'utf8')); } catch (_) { return false; }
+    if (alreadySentProspects.has(draft.prospect_id) || alreadySentDraftIds.has(draft.draft_id)) {
+      console.log(`[send] Skip ${draft.em} — already sent today`);
+      return false;
+    }
+    if (draft.batch_date) {
+      const ageDays = (now - new Date(draft.batch_date).getTime()) / 86400000;
+      if (ageDays > STALE_DRAFT_DAYS) {
+        console.warn(`[send] Skip ${draft.em} — draft is ${Math.floor(ageDays)} days old (stale)`);
+        fs.renameSync(path.join(APPROVED_DIR, file), path.join(SENT_DIR, 'stale-' + file));
+        return false;
+      }
+    }
+    return true;
+  });
+
+  const remaining = DAILY_SEND_LIMIT - todaySentCount;
+  const filesToSend = files.slice(0, remaining);
+
+  if (filesToSend.length === 0) {
+    console.log('[send] No sendable drafts after dedup/staleness filter — done');
+    return;
+  }
+
+  console.log(`[send] ${filesToSend.length} draft(s) to send (${todaySentCount} already sent today, limit ${DAILY_SEND_LIMIT})`);
 
   const mailer = new Mailer(mailerEmailConfig, oauthConfig);
 
@@ -71,7 +118,7 @@ async function main() {
   let sentCount = 0;
   let failCount = 0;
 
-  for (const file of files) {
+  for (const file of filesToSend) {
     const filePath = path.join(APPROVED_DIR, file);
     let draft;
     try {
@@ -108,7 +155,6 @@ async function main() {
       // Update prospect in memory
       const pi = prospects.findIndex(p => p.id === draft.prospect_id);
       if (pi !== -1) {
-        const today = new Date().toISOString().split('T')[0];
         prospects[pi].st = 'email_sent';
         prospects[pi].lc = today;
         prospects[pi].fuc = (parseInt(prospects[pi].fuc, 10) || 0) + 1;

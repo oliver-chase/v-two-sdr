@@ -23,7 +23,7 @@ const { checkInbox, buildConfig } = require('./inbox-monitor');
 const { handleBounce } = require('./bounce-handler');
 const { GoogleSheetsConnector } = require('../sheets-connector');
 const { OAuthClient } = require('./oauth-client');
-const { supabaseUpsert } = require('./supabase-client');
+const { supabaseUpsert, supabasePatch } = require('./supabase-client');
 const sheetsConfig = require('../config.sheets');
 const oauthConfig = require('../config/config.oauth');
 const { OOO_BUFFER_DAYS } = require('../config/sequences');
@@ -348,6 +348,15 @@ async function main() {
       sheetUpdates.push({ em: prospect.em, st: 'closed_positive' });
       changed++;
       console.log(`[inbox] ${prospect.em} → closed_positive`);
+      // Mark corresponding send row as 'replied' so reply-rate stat is accurate
+      if (prospect.id) {
+        await supabasePatch(
+          'sdr_sends',
+          'prospect_id=eq.' + encodeURIComponent(prospect.id) + '&status=eq.sent',
+          { status: 'replied' },
+          '[inbox]'
+        );
+      }
       await sendHotLeadAlert(prospect, reply.snippet || '');
 
     } else if (classification === 'negative' || classification === 'opt_out') {
