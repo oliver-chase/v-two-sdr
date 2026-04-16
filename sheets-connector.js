@@ -48,7 +48,7 @@ class GoogleSheetsConnector {
 
     // Write-mode config (service account)
     this.serviceAccountEmail = config.google_sheets?.service_account_email || process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || '';
-    this.privateKey = config.google_sheets?.private_key || process.env.GOOGLE_PRIVATE_KEY || '';
+    this.privateKey = (config.google_sheets?.private_key || process.env.GOOGLE_PRIVATE_KEY || '').replace(/\\n/g, '\n');
     this.protectedFields = config.google_sheets?.protected_fields || [];
     this.writableFields = config.google_sheets?.writable_fields || [];
 
