@@ -22,7 +22,7 @@ const { OAuthClient } = require('./oauth-client');
 const oauthConfig = require('../config/config.oauth');
 
 const DRAFTS_DIR = path.join(__dirname, '..', 'outreach', 'drafts');
-const RECIPIENT = 'kiana.micari@vtwo.co';
+const RECIPIENT = process.env.APPROVAL_EMAIL_RECIPIENT || 'kiana.micari@vtwo.co';
 const DEFAULT_WORKER_URL = 'https://sdr-approval.workers.dev';
 
 // ─── URL builder ──────────────────────────────────────────────────────────────

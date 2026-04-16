@@ -10,7 +10,11 @@ const fs = require('fs');
 const path = require('path');
 
 const VALID_TRACKS = ['ai-enablement', 'product-maker', 'pace-car'];
-const VALID_STATUSES = ['pending', 'sent', 'replied', 'opted-out', 'bounced', 'closed'];
+const VALID_STATUSES = [
+  'new', 'email_discovered', 'draft_generated', 'awaiting_approval',
+  'email_sent', 'followup_due', 'ooo_pending', 'replied',
+  'closed_positive', 'closed_negative', 'closed_no_reply', 'bounced_no_alt'
+];
 const TIMEZONES = [
   'America/New_York',
   'America/Chicago',
@@ -59,8 +63,8 @@ function validateProspect(prospect, index) {
 
   // Status validation
   if (!prospect.st || !VALID_STATUSES.includes(prospect.st)) {
-    warnings.push(`Row ${index}: Invalid or missing status (st). Setting to "pending"`);
-    prospect.st = 'pending';
+    warnings.push(`Row ${index}: Invalid or missing status (st). Setting to "new"`);
+    prospect.st = 'new';
   }
 
   // Timezone validation

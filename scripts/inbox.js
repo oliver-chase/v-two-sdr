@@ -27,7 +27,7 @@ const sheetsConfig = require('../config.sheets');
 const oauthConfig = require('../config/config.oauth');
 const { OOO_BUFFER_DAYS } = require('../config/sequences');
 
-const ALERT_RECIPIENT = 'kiana.micari@vtwo.co';
+const ALERT_RECIPIENT = process.env.APPROVAL_EMAIL_RECIPIENT || 'kiana.micari@vtwo.co';
 
 const PROSPECTS_FILE = path.join(__dirname, '..', 'prospects.json');
 const HAIKU_FAILURES_LOG = path.join(__dirname, '..', 'outreach', 'haiku-failures.jsonl');
@@ -382,10 +382,13 @@ async function main() {
       acc[k] = (acc[k] || 0) + 1;
       return acc;
     }, {});
-    fs.writeFileSync(PROSPECTS_FILE, JSON.stringify({
+    const inboxPayload = JSON.stringify({
       prospects,
       metadata: { ...raw.metadata, lu: new Date().toISOString(), by_st: byState }
-    }, null, 2));
+    }, null, 2);
+    const inboxTmpFile = PROSPECTS_FILE + '.tmp';
+    fs.writeFileSync(inboxTmpFile, inboxPayload);
+    fs.renameSync(inboxTmpFile, PROSPECTS_FILE);
 
     await updateSheet(sheetUpdates);
   }

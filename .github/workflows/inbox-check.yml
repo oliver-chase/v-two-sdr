@@ -34,6 +34,7 @@ jobs:
           GOOGLE_PRIVATE_KEY: ${{ secrets.GOOGLE_PRIVATE_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          APPROVAL_EMAIL_RECIPIENT: ${{ secrets.APPROVAL_EMAIL_RECIPIENT }}
         run: node scripts/inbox.js
 
       - name: Commit and push changes

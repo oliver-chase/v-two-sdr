@@ -205,7 +205,7 @@ class GoogleSheetsConnector {
     }
 
     const validation = validateFieldMapping(mapping);
-    if (!validation.valid) {
+    if (!validation.isValid) {
       throw new Error(`Invalid field mapping: ${validation.errors.join(', ')}`);
     }
 

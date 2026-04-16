@@ -187,10 +187,13 @@ async function main() {
       acc[k] = (acc[k] || 0) + 1;
       return acc;
     }, {});
-    fs.writeFileSync(PROSPECTS_FILE, JSON.stringify({
+    const sendPayload = JSON.stringify({
       prospects,
       metadata: { ...raw.metadata, lu: new Date().toISOString(), by_st: byState }
-    }, null, 2));
+    }, null, 2);
+    const sendTmpFile = PROSPECTS_FILE + '.tmp';
+    fs.writeFileSync(sendTmpFile, sendPayload);
+    fs.renameSync(sendTmpFile, PROSPECTS_FILE);
 
     await writeSendsToSupabase(sentDrafts);
     await updateSheet(sentProspects);

@@ -342,10 +342,13 @@ async function main() {
     acc[k] = (acc[k] || 0) + 1;
     return acc;
   }, {});
-  fs.writeFileSync(PROSPECTS_FILE, JSON.stringify({
+  const draftProspectsPayload = JSON.stringify({
     prospects,
     metadata: { ...raw.metadata, lu: new Date().toISOString(), by_st: byState }
-  }, null, 2));
+  }, null, 2);
+  const draftTmpFile = PROSPECTS_FILE + '.tmp';
+  fs.writeFileSync(draftTmpFile, draftProspectsPayload);
+  fs.renameSync(draftTmpFile, PROSPECTS_FILE);
 
   // Write drafts to Supabase sdr_approval_items (best-effort)
   await writeDraftsToSupabase(drafts, today);

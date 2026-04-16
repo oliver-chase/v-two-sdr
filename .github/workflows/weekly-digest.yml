@@ -23,4 +23,5 @@ jobs:
           OUTLOOK_TENANT_ID: ${{ secrets.OUTLOOK_TENANT_ID }}
           OUTLOOK_CLIENT_ID: ${{ secrets.OUTLOOK_CLIENT_ID }}
           OUTLOOK_CLIENT_SECRET: ${{ secrets.OUTLOOK_CLIENT_SECRET }}
+          APPROVAL_EMAIL_RECIPIENT: ${{ secrets.APPROVAL_EMAIL_RECIPIENT }}
         run: node scripts/digest.js

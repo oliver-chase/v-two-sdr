@@ -22,7 +22,7 @@ const oauthConfig = require('../config/config.oauth');
 const PROSPECTS_FILE = path.join(__dirname, '..', 'prospects.json');
 const SENDS_FILE     = path.join(__dirname, '..', 'outreach', 'sends.json');
 const REPLIES_FILE   = path.join(__dirname, '..', 'outreach', 'replies.json');
-const RECIPIENT      = 'kiana.micari@vtwo.co';
+const RECIPIENT      = process.env.APPROVAL_EMAIL_RECIPIENT || 'kiana.micari@vtwo.co';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 

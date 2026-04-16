@@ -120,10 +120,13 @@ async function main() {
         acc[k] = (acc[k] || 0) + 1;
         return acc;
       }, {});
-      fs.writeFileSync(PROSPECTS_FILE, JSON.stringify({
+      const approvalPayload = JSON.stringify({
         prospects,
         metadata: { ...raw.metadata, lu: new Date().toISOString(), by_st: byState }
-      }, null, 2));
+      }, null, 2);
+      const approvalTmpFile = PROSPECTS_FILE + '.tmp';
+      fs.writeFileSync(approvalTmpFile, approvalPayload);
+      fs.renameSync(approvalTmpFile, PROSPECTS_FILE);
       console.log(`[handle-approval] Prospect ${draft.prospect_id} reset → ${restoreStatus}`);
     }
 

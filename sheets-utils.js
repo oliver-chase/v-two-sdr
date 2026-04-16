@@ -136,6 +136,9 @@ function inferSchema(headers) {
 
   for (const header of headers) {
     const normalized = normalizeHeader(header);
+    if (!normalized || !TOON_FIELD_MAP[normalized]) {
+      if (header) console.warn(`[sheets] Skipping unrecognized column: "${header}"`);
+    }
     if (normalized && TOON_FIELD_MAP[normalized]) {
       const camelKey = toCamelCase(normalized);
       schema[camelKey] = {

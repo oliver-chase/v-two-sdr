@@ -37,6 +37,7 @@ jobs:
           OUTLOOK_CLIENT_SECRET: ${{ secrets.OUTLOOK_CLIENT_SECRET }}
           SDR_TOKEN: ${{ secrets.SDR_TOKEN }}
           WORKER_URL: "https://sdr-approval.workers.dev"
+          APPROVAL_EMAIL_RECIPIENT: ${{ secrets.APPROVAL_EMAIL_RECIPIENT }}
         run: node scripts/approval-email.js
 
       - name: Commit and push changes

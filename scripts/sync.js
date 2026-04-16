@@ -178,14 +178,17 @@ async function main() {
     return acc;
   }, {});
 
-  fs.writeFileSync(PROSPECTS_FILE, JSON.stringify({
+  const prospectsPayload = JSON.stringify({
     prospects,
     metadata: {
       tot: prospects.length,
       lu: new Date().toISOString(),
       by_st: byState
     }
-  }, null, 2));
+  }, null, 2);
+  const tmpFile = PROSPECTS_FILE + '.tmp';
+  fs.writeFileSync(tmpFile, prospectsPayload);
+  fs.renameSync(tmpFile, PROSPECTS_FILE);
 
   // 6b. Dual-write to Supabase sdr_prospects (best-effort)
   await writeProspectsToSupabase(prospects);
