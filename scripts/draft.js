@@ -325,7 +325,65 @@ async function main() {
     metadata: { ...raw.metadata, lu: new Date().toISOString(), by_st: byState }
   }, null, 2));
 
+  // Write drafts to Supabase sdr_approval_items (best-effort)
+  await writeDraftsToSupabase(drafts, today);
+
   console.log(`[draft] Done. ${drafts.length} draft(s) (${usedLLM ? 'llm' : 'static'})`);
+}
+
+// ─── Supabase dual-write ──────────────────────────────────────────────────────
+
+async function writeDraftsToSupabase(drafts, batchDate) {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_ANON_KEY;
+  if (!url || !key) return;
+  try {
+    const https = require('https');
+    const payload = JSON.stringify(drafts.map(d => ({
+      id: d.draft_id,
+      batch_date: batchDate,
+      prospect_id: d.prospect_id,
+      em: d.em,
+      fn: d.fn,
+      nm: d.nm,
+      ti: d.ti,
+      co: d.co,
+      tr: d.tr,
+      touch: d.touch,
+      subject: d.subject,
+      body: d.body,
+      gen: d.gen,
+      status: 'pending_approval',
+      ts: d.ts,
+    })));
+    await new Promise((resolve, reject) => {
+      const urlObj = new URL(url + '/rest/v1/sdr_approval_items');
+      const req = https.request({
+        hostname: urlObj.hostname,
+        path: urlObj.pathname,
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + key,
+          'apikey': key,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates,return=minimal',
+          'Content-Length': Buffer.byteLength(payload),
+        },
+      }, res => {
+        res.resume();
+        res.on('end', () => {
+          if (res.statusCode >= 200 && res.statusCode < 300) resolve();
+          else reject(new Error('Supabase upsert returned ' + res.statusCode));
+        });
+      });
+      req.on('error', reject);
+      req.write(payload);
+      req.end();
+    });
+    console.log(`[draft] Wrote ${drafts.length} draft(s) to Supabase`);
+  } catch (e) {
+    console.warn(`[draft] Supabase write failed: ${e.message}`);
+  }
 }
 
 if (require.main === module) {

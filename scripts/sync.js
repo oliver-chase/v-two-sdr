@@ -177,9 +177,62 @@ async function main() {
     }
   }, null, 2));
 
+  // 6b. Dual-write to Supabase sdr_prospects (best-effort)
+  await writeProspectsToSupabase(prospects);
+
   // 7. Summary line (used by git-auto-commit message)
   const followupDue = prospects.filter(p => p.st === 'followup_due').length;
   console.log(`[sync] ${prospects.length} prospects, ${followupDue} follow-up(s) due`);
+}
+
+// ─── Supabase dual-write ──────────────────────────────────────────────────────
+
+async function writeProspectsToSupabase(prospects) {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_ANON_KEY;
+  if (!url || !key) {
+    console.log('[sync] SUPABASE_URL/ANON_KEY not set — skipping Supabase write');
+    return;
+  }
+  try {
+    // Upsert all prospects (on conflict: update)
+    const https = require('https');
+    const payload = JSON.stringify(prospects.map(p => ({
+      id: p.id, nm: p.nm, fn: p.fn, ti: p.ti, co: p.co, em: p.em,
+      st: p.st, tr: p.tr, sig: p.sig, ind: p.ind, sz: p.sz, rev: p.rev,
+      city: p.city, state: p.state, country: p.country,
+      fuc: parseInt(p.fuc, 10) || 1,
+      fc: p.fc, nfu: p.nfu, lc: p.lc,
+      lu: new Date().toISOString(),
+    })));
+    await new Promise((resolve, reject) => {
+      const urlObj = new URL(url + '/rest/v1/sdr_prospects');
+      const req = https.request({
+        hostname: urlObj.hostname,
+        path: urlObj.pathname,
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + key,
+          'apikey': key,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates,return=minimal',
+          'Content-Length': Buffer.byteLength(payload),
+        },
+      }, res => {
+        res.resume();
+        res.on('end', () => {
+          if (res.statusCode >= 200 && res.statusCode < 300) resolve();
+          else reject(new Error('Supabase upsert returned ' + res.statusCode));
+        });
+      });
+      req.on('error', reject);
+      req.write(payload);
+      req.end();
+    });
+    console.log(`[sync] Wrote ${prospects.length} prospect(s) to Supabase`);
+  } catch (e) {
+    console.warn(`[sync] Supabase write failed: ${e.message}`);
+  }
 }
 
 if (require.main === module) {
