@@ -24,6 +24,58 @@ const APPROVED_DIR = path.join(__dirname, '..', 'outreach', 'approved');
 const SENT_DIR = path.join(__dirname, '..', 'outreach', 'sent');
 const PROSPECTS_FILE = path.join(__dirname, '..', 'prospects.json');
 
+// ─── Supabase write-back ──────────────────────────────────────────────────────
+
+async function writeSendsToSupabase(sentDrafts) {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_ANON_KEY;
+  if (!url || !key) return;
+  try {
+    const https = require('https');
+    const payload = JSON.stringify(sentDrafts.map(d => ({
+      id: d.draft_id,
+      prospect_id: d.prospect_id,
+      draft_id: d.draft_id,
+      em: d.em,
+      fn: d.fn,
+      nm: d.nm || d.fn,
+      ti: d.ti,
+      co: d.co,
+      subject: d.subject,
+      sent_at: new Date().toISOString(),
+      status: 'sent',
+      fuc: d.fuc || 1,
+    })));
+    await new Promise((resolve, reject) => {
+      const urlObj = new URL(url + '/rest/v1/sdr_sends');
+      const req = https.request({
+        hostname: urlObj.hostname,
+        path: urlObj.pathname,
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + key,
+          'apikey': key,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates,return=minimal',
+          'Content-Length': Buffer.byteLength(payload),
+        },
+      }, res => {
+        res.resume();
+        res.on('end', () => {
+          if (res.statusCode >= 200 && res.statusCode < 300) resolve();
+          else reject(new Error('Supabase sdr_sends returned ' + res.statusCode));
+        });
+      });
+      req.on('error', reject);
+      req.write(payload);
+      req.end();
+    });
+    console.log(`[send] Wrote ${sentDrafts.length} send(s) to Supabase`);
+  } catch (e) {
+    console.warn(`[send] Supabase write failed: ${e.message}`);
+  }
+}
+
 // ─── Sheet write-back ─────────────────────────────────────────────────────────
 
 async function updateSheet(sent) {
@@ -66,6 +118,7 @@ async function main() {
   if (!fs.existsSync(SENT_DIR)) fs.mkdirSync(SENT_DIR, { recursive: true });
 
   const sentProspects = [];
+  const sentDrafts = [];
   let sentCount = 0;
   let failCount = 0;
 
@@ -97,6 +150,7 @@ async function main() {
 
     if (result.ok) {
       sentCount++;
+      sentDrafts.push(draft);
       console.log(`[send] Sent (${result.messageId})`);
 
       // Move to sent/
@@ -138,6 +192,7 @@ async function main() {
       metadata: { ...raw.metadata, lu: new Date().toISOString(), by_st: byState }
     }, null, 2));
 
+    await writeSendsToSupabase(sentDrafts);
     await updateSheet(sentProspects);
   }
 

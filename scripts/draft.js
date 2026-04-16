@@ -250,10 +250,13 @@ async function main() {
   // Attempt ONE batched LLM call
   let llmDrafts = new Map();
   let usedLLM = false;
+  let llmCallFailed = false;
+  let promptTokensEst = null;
 
   if (process.env.ANTHROPIC_API_KEY) {
     try {
       const prompt = buildBatchPrompt(eligible, templates);
+      promptTokensEst = Math.ceil(prompt.length / 4);
       console.log('[draft] Calling Anthropic Claude Haiku (batched)...');
       const response = await callAnthropic(prompt);
       llmDrafts = parseBatchResponse(response);
@@ -263,6 +266,7 @@ async function main() {
         console.warn(`[draft] ${eligible.length - llmDrafts.size} missing from LLM response — static fallback for those`);
       }
     } catch (e) {
+      llmCallFailed = true;
       console.warn(`[draft] LLM call failed: ${e.message}`);
       console.warn('[draft] Falling back to static templates for all prospects');
     }
@@ -277,8 +281,20 @@ async function main() {
 
   for (const p of eligible) {
     const llm = llmDrafts.get(p.id);
+    const isLlm = !!(usedLLM && llm);
     const { subject, body } = llm || applyStaticTemplate(templates, p);
     const fuc = parseInt(p.fuc, 10) || 1;
+
+    let fallbackReason = null;
+    if (!isLlm) {
+      if (!process.env.ANTHROPIC_API_KEY) fallbackReason = 'no_api_key';
+      else if (llmCallFailed) fallbackReason = 'llm_call_failed';
+      else fallbackReason = 'missing_from_parse';
+    }
+
+    const templateKey = p.st === 'followup_due'
+      ? (fuc >= 2 ? 'E' : 'D')
+      : ({ 'product-maker': 'A', 'ai-enablement': 'B', 'pace-car': 'C' }[p.tr] || 'A');
 
     drafts.push({
       draft_id: `${dateTag}-${p.id}`,
@@ -293,9 +309,15 @@ async function main() {
       fuc,
       subject,
       body,
-      gen: (usedLLM && llm) ? 'llm' : 'static',
+      gen: isLlm ? 'llm' : 'static',
       ts: new Date().toISOString(),
-      status: 'pending_approval'
+      status: 'pending_approval',
+      audit_trace: {
+        prompt_tokens_est: isLlm ? promptTokensEst : null,
+        fallback_reason: fallbackReason,
+        pattern_used: isLlm ? 'llm' : templateKey,
+        generated_at: new Date().toISOString(),
+      },
     });
   }
 

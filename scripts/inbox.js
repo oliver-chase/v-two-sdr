@@ -30,6 +30,14 @@ const { OOO_BUFFER_DAYS } = require('../config/sequences');
 const ALERT_RECIPIENT = 'kiana.micari@vtwo.co';
 
 const PROSPECTS_FILE = path.join(__dirname, '..', 'prospects.json');
+const HAIKU_FAILURES_LOG = path.join(__dirname, '..', 'outreach', 'haiku-failures.jsonl');
+
+function logHaikuFailure(em, type, detail) {
+  try {
+    const entry = JSON.stringify({ ts: new Date().toISOString(), em: em || null, type, detail }) + '\n';
+    fs.appendFileSync(HAIKU_FAILURES_LOG, entry);
+  } catch (_) { /* best-effort */ }
+}
 
 // ─── OOO date parser ──────────────────────────────────────────────────────────
 
@@ -152,6 +160,7 @@ function draftReplyViaHaiku(prospect, replySnippet) {
       res.on('end', function() {
         if (res.statusCode !== 200) {
           console.warn('[inbox] Haiku reply draft failed: HTTP ' + res.statusCode);
+          logHaikuFailure(prospect.em, 'http_error', 'status=' + res.statusCode);
           return resolve(null);
         }
         try {
@@ -159,6 +168,7 @@ function draftReplyViaHaiku(prospect, replySnippet) {
           resolve(text || null);
         } catch (e) {
           console.warn('[inbox] Haiku response parse error: ' + e.message);
+          logHaikuFailure(prospect.em, 'parse_error', e.message);
           resolve(null);
         }
       });
@@ -166,12 +176,14 @@ function draftReplyViaHaiku(prospect, replySnippet) {
 
     req.on('error', function(e) {
       console.warn('[inbox] Haiku request error: ' + e.message);
+      logHaikuFailure(prospect.em, 'request_error', e.message);
       resolve(null);
     });
 
     req.setTimeout(15000, function() {
       req.destroy(new Error('timeout'));
       console.warn('[inbox] Haiku reply draft timed out (15s) — sending alert without suggestion');
+      logHaikuFailure(prospect.em, 'timeout', '15s');
       resolve(null);
     });
 
