@@ -13,6 +13,8 @@ on:
 jobs:
   handle:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -30,12 +32,15 @@ jobs:
           GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
           GOOGLE_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_EMAIL }}
           GOOGLE_PRIVATE_KEY: ${{ secrets.GOOGLE_PRIVATE_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: node scripts/handle-approval.js
 
       - name: Commit and push changes
         run: |
           git config user.email "oliver@vtwo.co"
           git config user.name "Oliver SDR Bot"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
           git add -A
           git diff --staged --quiet || git commit -m "approval: ${{ inputs.action }} ${{ inputs.draft_id }}"
           git push
@@ -44,9 +49,10 @@ jobs:
         if: ${{ inputs.action == 'approve' }}
         env:
           SDR_PAT: ${{ secrets.SDR_TOKEN }}
+          REPO: ${{ github.repository }}
         run: |
           curl -s -X POST \
-            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/send-approved.yml/dispatches" \
-            -H "Authorization: Bearer $SDR_PAT" \
+            "https://api.github.com/repos/${REPO}/actions/workflows/send-approved.yml/dispatches" \
+            -H "Authorization: Bearer ${SDR_PAT}" \
             -H "Content-Type: application/json" \
             -d '{"ref":"main"}'

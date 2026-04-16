@@ -169,6 +169,7 @@ function _daysAgo(n) {
 async function checkInbox(config) {
   const outlookUser = config.outlook?.user || process.env.OUTLOOK_USER || '';
   const outlookPass = config.outlook?.pass || process.env.OUTLOOK_PASSWORD || '';
+  const accessToken = config.outlook?.accessToken || null;
 
   const imapHost = config.imap?.host || IMAP_HOST;
   const imapPort = config.imap?.port || IMAP_PORT;
@@ -182,14 +183,16 @@ async function checkInbox(config) {
 
   const sends = _loadSends(sendsLogPath);
 
+  // Prefer OAuth access token over password — M365 blocks basic auth by default
+  const auth = accessToken
+    ? { user: outlookUser, accessToken }
+    : { user: outlookUser, pass: outlookPass };
+
   const client = new ImapFlow({
     host: imapHost,
     port: imapPort,
     secure: true,
-    auth: {
-      user: outlookUser,
-      pass: outlookPass
-    },
+    auth,
     logger: false
   });
 

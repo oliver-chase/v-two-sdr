@@ -291,6 +291,17 @@ async function main() {
 
   const config = buildConfig();
 
+  // Prefer OAuth over password — M365 blocks basic IMAP auth by default
+  if (process.env.OUTLOOK_TENANT_ID && process.env.OUTLOOK_CLIENT_ID && process.env.OUTLOOK_CLIENT_SECRET) {
+    try {
+      const oauthClient = new OAuthClient(oauthConfig);
+      const accessToken = await oauthClient.getToken();
+      config.outlook.accessToken = accessToken;
+    } catch (e) {
+      console.warn(`[inbox] OAuth token fetch failed: ${e.message} — falling back to password auth`);
+    }
+  }
+
   let result;
   try {
     result = await checkInbox({

@@ -350,36 +350,66 @@ async function enrichProspectWebFetch(prospect, cache = null) {
   }
 
   try {
-    // In production: call OpenClaw web_fetch here
-    // Example: const html = await openClawWebFetch(`https://${prospect.co}`)
+    // Derive domain: explicit field → email domain → company name guess
+    let domain = null;
+    if (prospect.dm) {
+      domain = prospect.dm.toLowerCase().replace(/^https?:\/\//i, '').replace(/\/.*/g, '');
+    } else if (prospect.em) {
+      domain = prospect.em.split('@')[1];
+    } else if (prospect.co) {
+      domain = prospect.co.toLowerCase().replace(/\s+/g, '').replace(/[^\w.-]/g, '') + '.com';
+    }
 
-    // For now: mock response
+    if (!domain) {
+      const empty = { fetched: false, context: {} };
+      if (cache) cache.webFetchResults.set(cacheKey, empty);
+      return empty;
+    }
+
+    // Fetch company homepage (5s timeout, no new dependencies)
+    const https = require('https');
+    const html = await new Promise((resolve) => {
+      let body = '';
+      const req = https.request(
+        { hostname: domain, path: '/', method: 'GET', headers: { 'User-Agent': 'Mozilla/5.0' } },
+        (res) => {
+          res.setEncoding('utf8');
+          res.on('data', (chunk) => { if (body.length < 40000) body += chunk; });
+          res.on('end', () => resolve(body));
+        }
+      );
+      req.on('error', () => resolve(''));
+      req.setTimeout(5000, () => { req.destroy(); resolve(''); });
+      req.end();
+    });
+
+    // Extract title and meta description
+    const titleM = html.match(/<title[^>]*>([^<]{1,120})<\/title>/i);
+    const descM = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']{1,300})["']/i)
+      || html.match(/<meta[^>]+content=["']([^"']{1,300})["'][^>]+name=["']description["']/i)
+      || html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']{1,300})["']/i);
+
+    const snippet = [
+      titleM ? titleM[1].trim() : '',
+      descM ? descM[1].trim() : '',
+    ].filter(Boolean).join(' — ').slice(0, 300);
+
     const result = {
-      fetched: false,
+      fetched: snippet.length > 0,
       context: {
         industry: null,
         location: null,
         employees: null,
-        founded: null
-      }
+        founded: null,
+        description: snippet || null,
+      },
     };
 
-    if (cache) {
-      cache.webFetchResults.set(cacheKey, result);
-    }
-
+    if (cache) cache.webFetchResults.set(cacheKey, result);
     return result;
   } catch (error) {
-    const result = {
-      fetched: false,
-      context: {},
-      error: error.message
-    };
-
-    if (cache) {
-      cache.webFetchResults.set(cacheKey, result);
-    }
-
+    const result = { fetched: false, context: {}, error: error.message };
+    if (cache) cache.webFetchResults.set(cacheKey, result);
     return result;
   }
 }

@@ -139,6 +139,16 @@ async function main() {
     }
   }
 
+  // 3b. Promote new prospects that have an email to email_discovered
+  let promoted = 0;
+  for (const p of prospects) {
+    if ((p.st === 'new' || p.st === 'New') && p.em) {
+      p.st = 'email_discovered';
+      promoted++;
+    }
+  }
+  if (promoted > 0) console.log(`[sync] Promoted ${promoted} prospect(s): new → email_discovered`);
+
   // 4. Follow-up scheduler
   const { flagged, closed } = scheduleFollowups(prospects);
   console.log(`[sync] Scheduler: ${flagged} follow-up(s) flagged, ${closed} closed`);

@@ -19,6 +19,7 @@ const path = require('path');
 
 const DRAFTS_DIR = path.join(__dirname, '..', 'outreach', 'drafts');
 const APPROVED_DIR = path.join(__dirname, '..', 'outreach', 'approved');
+const AUDIT_DIR = path.join(__dirname, '..', 'outreach', '.approval-audit');
 const PROSPECTS_FILE = path.join(__dirname, '..', 'prospects.json');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -86,6 +87,13 @@ async function main() {
     console.log(`[handle-approval] Draft ${draftId} already processed (status: ${draft.status}) — skipping`);
     return;
   }
+
+  // Write audit entry before acting (idempotency record)
+  if (!fs.existsSync(AUDIT_DIR)) fs.mkdirSync(AUDIT_DIR, { recursive: true });
+  fs.writeFileSync(
+    path.join(AUDIT_DIR, `${draftId}.json`),
+    JSON.stringify({ draft_id: draftId, action, prospect_id: draft.prospect_id, em: draft.em, ts: new Date().toISOString() }, null, 2)
+  );
 
   if (action === 'approve') {
     // Write to outreach/approved/

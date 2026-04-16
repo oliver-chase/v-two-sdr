@@ -8,6 +8,8 @@ on:
 jobs:
   prospect:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -30,6 +32,7 @@ jobs:
         run: |
           git config user.email "oliver@vtwo.co"
           git config user.name "Oliver SDR Bot"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
           git add -A
           git diff --staged --quiet || git commit -m "prospects: weekly batch added"
           git push
