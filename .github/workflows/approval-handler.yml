@@ -43,7 +43,7 @@ jobs:
       - name: Trigger send workflow on approval
         if: ${{ inputs.action == 'approve' }}
         env:
-          SDR_PAT: ${{ secrets.SDR_PAT }}
+          SDR_PAT: ${{ secrets.SDR_TOKEN }}
         run: |
           curl -s -X POST \
             "https://api.github.com/repos/${{ github.repository }}/actions/workflows/send-approved.yml/dispatches" \
